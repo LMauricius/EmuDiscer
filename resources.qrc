@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>EmuDiscer.svg</file>
+    </qresource>
+    <qresource prefix="/desktop">
+        <file>org.mauricius.EmuDiscer.desktop</file>
+    </qresource>
+</RCC>
