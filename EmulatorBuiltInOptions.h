@@ -28,9 +28,9 @@ std::map<QString, std::list<std::pair<QString, QString>>> OptionsPerProgram = {
     {"dolphin", {
          // Windows version requires a ':' at end of drive to recognize it as a drive
 #ifdef _WIN32
-         {"Run from CD", " --exec=(DRIVE):"},
+         {"Run from CD/DVD", " --exec=(DRIVE):"},
 #elif defined __unix__
-         {"Run from CD", " --exec=(DRIVE)"},
+         {"Run from CD/DVD", " --exec=(DRIVE)"},
 #endif
          {"Skip library loading (fast open)", " --batch"}
      }
