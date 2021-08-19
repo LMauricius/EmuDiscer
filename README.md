@@ -2,7 +2,7 @@
 
 # EmuDiscer 
 A simple tool for automatically lauching emulators when a game disc is inserted.
-EmuDiscer recognizes the game system the game is made for, and lauches the right emulator.
+EmuDiscer recognizes which system the game is made for, and lauches the right emulator.
 
 # Supported consoles
 * PS1
