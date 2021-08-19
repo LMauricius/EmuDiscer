@@ -1,4 +1,6 @@
-# EmuDiscer <img src="https://raw.githubusercontent.com/LegendaryMauricius/EmuDiscer/main/EmuDiscer.svg" width="25%">
+<img src="https://raw.githubusercontent.com/LegendaryMauricius/EmuDiscer/main/EmuDiscer.svg" width="10%">
+
+# EmuDiscer 
 A simple tool for automatically lauching emulators when a game disc is inserted.
 EmuDiscer recognizes the game system the game is made for, and lauches the right emulator.
 
