@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>EmuDiscer</DisplayName>
+    <Description>Install EmuDiscer.</Description>
+    <Version>1.0.0</Version>
+    <ReleaseDate>2021-8-20</ReleaseDate>
+    <Licenses>
+        <License name="GPLv3" file="LICENSE" />
+    </Licenses>
+    <Default>true</Default>
+</Package>
