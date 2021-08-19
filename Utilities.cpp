@@ -30,7 +30,7 @@ QString getExeFileFilter()
 
 QString getDesktopFileName()
 {
-    return "org.mauricius.EmuDiscer.desktop";
+    return "LMauricius.EmuDiscer.desktop";
 }
 
 QString getHomeDirectory()
@@ -106,7 +106,7 @@ AppDef getApps()
                     if (numIcons > 0)
                     {
                         QScopedArrayPointer<HICON> winIcons(new HICON[numIcons]);
-                        const UINT numExtrIcons = ExtractIconEx(cFilename, 0, winIcons.data(), nullptr, numIcons);
+                        const UINT numExtrIcons = ExtractIconEx(cFilename, 0, winIcons.data(), nullptr, 1);
 
                         if (numExtrIcons > 0)
                         {
@@ -260,13 +260,13 @@ void setAutoRun(bool autorun)
 		settings.remove("EmuDiscer");
     }
 #elif defined __unix__
-    QString target = getHomeDirectory() + "/.config/autostart/org.mauricius.EmuDiscer.desktop";
+    QString target = getHomeDirectory() + "/.config/autostart/LMauricius.EmuDiscer.desktop";
 
     if (autorun)
     {
         QString progPath = QString("\"%1\"").arg(qApp->arguments().first());
 
-        //QFile::copy(":/desktop/org.mauricius.EmuDiscer.desktop", target);
+        //QFile::copy(":/desktop/LMauricius.EmuDiscer.desktop", target);
         WMiIni desktop(target.toStdWString(), false);
         desktop.setStr(L"Desktop Entry", L"Exec", progPath.toStdWString());
         desktop.setStr(L"Desktop Entry", L"Name", L"EmuDiscer");

@@ -3,6 +3,6 @@
         <file>EmuDiscer.svg</file>
     </qresource>
     <qresource prefix="/desktop">
-        <file>org.mauricius.EmuDiscer.desktop</file>
+        <file>LMauricius.EmuDiscer.desktop</file>
     </qresource>
 </RCC>

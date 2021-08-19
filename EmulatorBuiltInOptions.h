@@ -14,7 +14,6 @@ std::map<QString, std::list<std::pair<QString, QString>>> OptionsPerProgram = {
      }
     },
     {"pcsx2", {
-         {"Don't use iso", "\"\""},
          {"Run from CD/DVD", " --usecd"},
          {"Show PS splashscreen (not recommended - game doesn't boot)", " --fullboot"},
          {"Start in fullscreen", " --fullscreen"},
