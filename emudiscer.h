@@ -25,12 +25,14 @@ private:
 	QMenu* mSysTrayMenu;
     QMenu* mMacrosMenu;
     QFileSystemWatcher* mFileWatcher;
+    QFileSystemWatcher* mPartitionWatcher;
 	QSystemTrayIcon* mSysTrayIcon;
     QTemporaryDir mTempDir;
 
 	std::wstring mSelectedEmulator;
 
     QStringList mMediaDirectories;
+    QStringList mPartitions;
 
 	void closeEvent(QCloseEvent *event);
     bool nativeEvent(const QByteArray & eventType, void * message, long *result);
@@ -41,13 +43,16 @@ private:
      * @param header The first bytes of the inserted drive
      * @param headerSize The number of bytes read and stored in header
     */
-    void insertedMedia(QString directory, QString drive, const char *header, size_t headerSize);
+    bool insertedMediaDir(QString directory, QString drive);
+    bool insertedMediaRaw(QString drive, const char *header, size_t headerSize);
+    bool tryLaunchEmu(QString emulatorType, QString mediaType, const std::map<std::wstring, std::wstring>& vars);
     void emulatorChanged();
 
 private slots:
 	void on_trayIconActivated(QSystemTrayIcon::ActivationReason reason);
-	void on_notificationClicked();
-    void on_mediaChanged(const QString &path);
+    void on_notificationClicked();
+    void on_mediaDirChanged(const QString &path);
+    void on_partitionChanged(QString drive);
 
 	void on_autoRunCheckbox_stateChanged(int state);
 	void on_notificationsCheckbox_stateChanged(int state); 

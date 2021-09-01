@@ -81,6 +81,7 @@ QStringList getRemovableDriveDirectories();
 AppDef getApps();
 
 QString getDrive(const QString& mountPoint);
+size_t getDriveFileHeader(QString drive, char *headerBuffer, size_t charsToRead);// accepts drive letter (windows) or drive file (unix); returns chars read
 bool fileExists(const QString& name);
 bool directoryExists(const QString& name);
 void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring& to);

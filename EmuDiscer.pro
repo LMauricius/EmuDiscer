@@ -1,9 +1,21 @@
 QT       += core gui
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
 win32 {
     QT   += winextras
 }
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+unix {
+    QT += dbus
+    #DBUS_ADAPTORS += UDisks2_adaptor
+    #DBUS_INTERFACES += UDisks2_interface
+    #UDisks2_adaptor.files = org.freedesktop.UDisks2.xml
+    #UDisks2_adaptor.header_flags = -idbusUdisks2XmlTypes.h
+    #UDisks2_adaptor.source_flags = -idbusUdisks2XmlTypes.h
+    #UDisks2_interface.files = org.freedesktop.UDisks2.xml
+    #UDisks2_interface.header_flags = -idbusUdisks2XmlTypes.h
+    #UDisks2_interface.source_flags = -idbusUdisks2XmlTypes.h
+}
 
 CONFIG += c++17
 
@@ -14,6 +26,7 @@ CONFIG += c++17
 RC_ICONS = EmuDiscer.ico
 
 SOURCES += \
+    UDisks2Watcher.cpp \
     Utilities.cpp \
     appdialog.cpp \
     emudiscer.cpp \
@@ -22,6 +35,7 @@ SOURCES += \
 HEADERS += \
     EmulatorBuiltInOptions.h \
     MiIni.h \
+    UDisks2Watcher.h \
     Utilities.h \
     appdialog.h \
     emudiscer.h
@@ -42,3 +56,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     resources.qrc
+
+DISTFILES +=

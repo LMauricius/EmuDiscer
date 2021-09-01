@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QTextStream>
+#include <QDebug>
 
 #include <fstream>
 
@@ -206,7 +207,7 @@ AppDef getApps()
                 QString name = QString::fromStdWString(appInfo.getStr(L"Desktop Entry", L"Name"));
                 QString exec = QString::fromStdWString(appInfo.getStr(L"Desktop Entry", L"Exec"));
                 QString iconFile = QString::fromStdWString(appInfo.getStr(L"Desktop Entry", L"Icon"));
-                root.subApps[cat].subApps[name] = AppDef{.path = exec, .icon = QIcon::fromTheme(iconFile)};
+                root.subApps[cat].subApps[name] = AppDef(exec, QIcon::fromTheme(iconFile));
             }
         }
     }
@@ -238,6 +239,39 @@ QString getDrive(const QString& mountPoint)
     endmntent(file);
     return "";
 #endif
+}
+
+// accepts drive letter (windows) or drive file (unix); returns chars read
+size_t getDriveFileHeader(QString drive, char *headerBuffer, size_t charsToRead)
+{
+#ifdef _WIN32
+    std::string driveFilename = std::string("\\\\.\\")+drive.toStdString()+":";
+#elif defined __unix__
+    std::string driveFilename = drive.toStdString();
+#endif
+
+    size_t charsRead = 0;
+    memset(headerBuffer, 0, charsToRead);
+
+    std::ifstream driveFile(driveFilename, std::ios::binary);
+    if (driveFile.good()) {
+        driveFile.read(headerBuffer, charsToRead);
+        if (driveFile)
+        {
+            charsRead = charsToRead;
+        }
+        else
+        {
+            charsRead = driveFile.gcount();
+        }
+        driveFile.close();
+    }
+    else {
+        std::string reasons = strerror(errno);
+        qCritical() << "Couldn't open file: " << QString::fromStdString(reasons) << "\n";
+    }
+
+    return charsRead;
 }
 
 void setAutoRun(bool autorun)

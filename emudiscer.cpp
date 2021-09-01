@@ -21,6 +21,11 @@
 #include "dbt.h"
 #endif
 
+#ifdef __unix__
+#include <QtDBus>
+#include "UDisks2Watcher.h"
+#endif
+
 #include <fstream>
 
 
@@ -28,6 +33,7 @@ EmuDiscer::EmuDiscer(QWidget *parent)
 	: QDialog(parent)
     , mConfig((getConfigDirectory()+"/config.ini").toStdWString(), true)
     , mFileWatcher(new QFileSystemWatcher(this))
+    , mPartitionWatcher(new QFileSystemWatcher(this))
 {
     ui.setupUi(this);
 
@@ -79,7 +85,7 @@ EmuDiscer::EmuDiscer(QWidget *parent)
     if (driveDirs.size() > 0)
     {
         mFileWatcher->addPaths(driveDirs);
-        connect(mFileWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(on_mediaChanged(const QString &)));
+        connect(mFileWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(on_mediaDirChanged(const QString &)));
         for (const QString &path : driveDirs)
         {
             QDir dir(path);
@@ -88,6 +94,12 @@ EmuDiscer::EmuDiscer(QWidget *parent)
             }
         }
     }
+
+#if defined __unix__
+    // unix' way of reacting to drive change
+    UDisks2Watcher *udisks2watcher = new UDisks2Watcher(this);
+    connect(udisks2watcher, SIGNAL(partitionChanged(QString)), this, SLOT(on_partitionChanged(QString)));
+#endif
 
 	/*
     Set defaults if needed
@@ -152,24 +164,9 @@ bool EmuDiscer::nativeEvent(const QByteArray & eventType, void * message, long *
 					}
 
                     // load header bytes
-                    std::string driveFilename = std::string("\\\\.\\")+driveLetter+":";
                     char headerBuffer[128];
                     size_t charsToRead = 128;
-                    memset(headerBuffer, 0, charsToRead);
-
-                    std::ifstream driveFile(driveFilename, std::ios::binary);
-                    if (driveFile.good()) {
-                        driveFile.read(headerBuffer, charsToRead);
-                        if (!driveFile)
-                        {
-                            charsToRead = driveFile.gcount();
-                        }
-                        driveFile.close();
-                    }
-                    else {
-                        std::string reasons = strerror(errno);
-                        qCritical() << "Couldn't open file: " << QString::fromStdString(reasons) << "\n";
-                    }
+                    charsToRead = getDriveFileHeader(QString::fromStdString(driveLetter), headerBuffer, charsToRead);
 
                     // make an iso from the drive file (was an experiment - not working)
                     /*std::string linkFilename = mTempDir.path().toStdString() + "driveIsoFile" + driveLetter + ".iso";
@@ -185,12 +182,23 @@ bool EmuDiscer::nativeEvent(const QByteArray & eventType, void * message, long *
                     }*/
 
                     // launch Emu
-                    insertedMedia(
-						QString() + driveLetter + ":",
-                        QString(driveLetter),
-                        headerBuffer,
-                        charsToRead
-					);
+                    if (
+                        insertedMediaDir(
+                            QString() + driveLetter + ":",
+                            QString(driveLetter)
+                        )
+                    )
+                    {
+                    }
+                    else if (
+                        insertedMediaRaw(
+                            QString(driveLetter),
+                            headerBuffer,
+                            charsToRead
+                        )
+                    )
+                    {
+                    }
 				}
 			}
 		}
@@ -200,9 +208,37 @@ bool EmuDiscer::nativeEvent(const QByteArray & eventType, void * message, long *
     return QDialog::nativeEvent(eventType, message, result);// don't filter
 }
 
-void EmuDiscer::insertedMedia(QString directory, QString drive, const char *header, size_t headerSize)
+bool EmuDiscer::tryLaunchEmu(QString emulatorType, QString mediaType, const std::map<std::wstring, std::wstring>& vars)
 {
-	QString errorMessage;
+    if (emulatorType != "")
+    {
+        std::wstring path = mConfig.getStr(emulatorType.toStdWString(), L"Path");
+        std::wstring options = mConfig.getStr(emulatorType.toStdWString(), L"Options");
+
+        if (path != L"" && fileExists(QString::fromStdWString(path)))
+        {
+            for (auto& p : vars)
+            {
+                replaceAll(options, p.first, p.second);
+            }
+
+            startProgram(path, options);
+        }
+        else if (mConfig.get<bool>(L"System", L"ShowNotifications"))
+        {
+            mSysTrayIcon->showMessage("No emulator", QString("A %1 has been inserted but a %2 emulator has not been set up. Click to set it up.").arg(mediaType, emulatorType), windowIcon());
+        }
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool EmuDiscer::insertedMediaDir(QString directory, QString drive)
+{
 	QString mediaType;
 	QString emulatorType;
 	std::map<std::wstring, std::wstring> vars;
@@ -238,9 +274,22 @@ void EmuDiscer::insertedMedia(QString directory, QString drive, const char *head
 	{
 		mediaType = "PSP game disc";
 		emulatorType = "PSP";
-	}
+    }
+
+    return tryLaunchEmu(emulatorType, mediaType, vars);
+}
+
+bool EmuDiscer::insertedMediaRaw(QString drive, const char *header, size_t headerSize)
+{
+    QString mediaType;
+    QString emulatorType;
+    std::map<std::wstring, std::wstring> vars;
+
+    vars[L"(DRIVE)"] = drive.toStdWString();
+    vars[L"(BOOT_FILE)"] = L"";
+
     // Gamecube (the bytes between 1B and 1F seem to always be the 00 C2 33 9F 3D)
-    else if (
+    if (
         headerSize >= 32 &&
         memcmp(
             header+0x1b,
@@ -266,25 +315,7 @@ void EmuDiscer::insertedMedia(QString directory, QString drive, const char *head
         emulatorType = "Wii";
     }
 
-	if (emulatorType != "")
-	{
-		std::wstring path = mConfig.getStr(emulatorType.toStdWString(), L"Path");
-		std::wstring options = mConfig.getStr(emulatorType.toStdWString(), L"Options");
-
-		if (path != L"" && fileExists(QString::fromStdWString(path)))
-        {
-			for (auto& p : vars)
-			{
-				replaceAll(options, p.first, p.second);
-            }
-
-            startProgram(path, options);
-		}
-		else if (mConfig.get<bool>(L"System", L"ShowNotifications"))
-		{
-			mSysTrayIcon->showMessage("No emulator", QString("A %1 has been inserted but a %2 emulator has not been set up. Click to set it up.").arg(mediaType, emulatorType), windowIcon());
-		}
-	}
+    return tryLaunchEmu(emulatorType, mediaType, vars);
 }
 
 
@@ -315,7 +346,7 @@ void EmuDiscer::on_notificationClicked()
 	activateWindow();
 }
 
-void EmuDiscer::on_mediaChanged(const QString &path)
+void EmuDiscer::on_mediaDirChanged(const QString &path)
 {
     QStringList newDirs;
     /*QDirIterator it(path, QDirIterator::);
@@ -335,11 +366,22 @@ void EmuDiscer::on_mediaChanged(const QString &path)
     {
         if (!mMediaDirectories.contains(str))
         {
-            insertedMedia(str, getDrive(str), "", 0);
+            QString drive = getDrive(str);
+            insertedMediaDir(str, drive);
         }
     }
 
     mMediaDirectories = newDirs;
+}
+
+void EmuDiscer::on_partitionChanged(QString drive)
+{
+    //"/dev/sr0";
+    char headerBuffer[128];
+    size_t charsToRead = 128;
+
+    size_t charsRead = getDriveFileHeader(drive, headerBuffer, charsToRead);
+    insertedMediaRaw(drive, headerBuffer, charsRead);
 }
 
 void EmuDiscer::on_autoRunCheckbox_stateChanged(int state)
