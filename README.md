@@ -17,12 +17,12 @@ You can find installers at the [release page](https://github.com/LegendaryMauric
 
 # Usage
 Before playing games you need to configure EmuDiscer. After launching, the app will stay minimized in the system tray.
-To open the settings window click on EmuDiscer's icon in the tray. Now select the tab for the game system you want to setup, choose the emulator (by either browsing for the executable or selecting an app) and enter the command line options needed for the emulator to launch the game from disc. To make things easier, EmuDiscer has built-in options for popular emulators so you don't need to read the emulator's documentation.
+To open the settings window click on EmuDiscer's icon in the tray. Now select the tab for the game system you want to setup, choose the emulator (by either browsing for the executable or selecting an app) and enter the command line options needed for the emulator to launch the game from disc. To make things easier, EmuDiscer has built-in options for popular emulators so you don't need to read the emulators' docs.
 
 ![Alt text](docs/settings.png?raw=true)
 
 # Emulator command line macros
-Several macros are supported for CLI options when launching an emulator:
+Several macros are supported for CLI options when launching an emulator. The macros will be replaced with their values before the options are passed to the program.
 * (DRIVE) - The drive letter or a device file of the inserted media. 
 * (DIRECTORY) - The path of the inserted game's files, without a trailing slash
 * (BOOT_FILE) - The executable game file, relative to the directory (might only be useful for PS1 and PS2 games)
