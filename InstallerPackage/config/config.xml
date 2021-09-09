@@ -6,8 +6,8 @@
     <Publisher>LMauricius</Publisher>
     <ProductUrl>https://github.com/LMauricius/EmuDiscer</ProductUrl>
     <InstallerWindowIcon>EmuDiscer.ico</InstallerWindowIcon>
-    <InstallerApplicationIcon>EmuDiscer.ico</InstallerApplicationIcon>
-    <Logo>EmuDiscer.ico</Logo>
+    <InstallerApplicationIcon>EmuDiscer2.ico</InstallerApplicationIcon>
+    <Logo>EmuDiscer3.ico</Logo>
     <RunProgram>@TargetDir@/EmuDiscer.exe</RunProgram>
     <RunProgramArguments>
         <Argument>--open-settings</Argument>
