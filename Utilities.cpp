@@ -103,11 +103,11 @@ AppDef getApps()
                     natFStr.toWCharArray(cFilename);
                     cFilename[natFStr.length()] = 0;
 
-                    const UINT numIcons = ExtractIconEx(cFilename, -1, nullptr, nullptr, 0);
+                    const UINT numIcons = ExtractIconExW(cFilename, -1, nullptr, nullptr, 0);
                     if (numIcons > 0)
                     {
                         QScopedArrayPointer<HICON> winIcons(new HICON[numIcons]);
-                        const UINT numExtrIcons = ExtractIconEx(cFilename, 0, winIcons.data(), nullptr, 1);
+                        const UINT numExtrIcons = ExtractIconExW(cFilename, 0, winIcons.data(), nullptr, 1);
 
                         if (numExtrIcons > 0)
                         {
@@ -310,6 +310,7 @@ void setAutoRun(bool autorun)
         desktop.setStr(L"Desktop Entry", L"Categories", L"Game;");
         desktop.setStr(L"Desktop Entry", L"Comment", L"A program for running emulators when a disc is inserted.");
         desktop.sync();
+        QFile::setPermissions(target, QFile::permissions(target) | QFile::ExeOwner | QFile::ExeUser | QFile::ExeGroup | QFile::ExeOther);
     }
     else
     {
