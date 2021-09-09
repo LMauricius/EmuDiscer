@@ -2,8 +2,11 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+CONFIG += console
+
 win32 {
     QT   += winextras
+    LIBS += -lshell32
 }
 unix {
     QT += dbus

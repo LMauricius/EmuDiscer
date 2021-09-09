@@ -111,7 +111,7 @@ void AppDialog::on_filterEdit_textChanged()
     if (ui->appTree->currentItem())
     {
         QTreeWidgetItem *parent = ui->appTree->currentItem();
-        while (parent = parent->parent())
+        while ((parent = parent->parent()))
         {
             ui->appTree->expandItem(ui->appTree->currentItem());
         }

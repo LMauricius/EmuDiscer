@@ -4,7 +4,7 @@
     <Version>1.0.0</Version>
     <Title>EmuDiscer offline setup</Title>
     <Publisher>LMauricius</Publisher>
-    <ProductUrl>https://github.com/LegendaryMauricius/EmuDiscer</ProductUrl>
+    <ProductUrl>https://github.com/LMauricius/EmuDiscer</ProductUrl>
     <InstallerWindowIcon>EmuDiscer.ico</InstallerWindowIcon>
     <InstallerApplicationIcon>EmuDiscer.ico</InstallerApplicationIcon>
     <Logo>EmuDiscer.ico</Logo>
