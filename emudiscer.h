@@ -7,6 +7,7 @@
 #include <QFileSystemWatcher>
 #include <QAbstractNativeEventFilter>
 #include <QTemporaryDir>
+#include <QSessionManager>
 
 #include "ui_emudiscer.h"
 #include "MiIni.h"
@@ -24,8 +25,6 @@ private:
     WMiIni mConfig;
 	QMenu* mSysTrayMenu;
     QMenu* mMacrosMenu;
-    QFileSystemWatcher* mFileWatcher;
-    QFileSystemWatcher* mPartitionWatcher;
 	QSystemTrayIcon* mSysTrayIcon;
     QTemporaryDir mTempDir;
 
@@ -53,6 +52,7 @@ private slots:
     void on_notificationClicked();
     void on_mediaDirChanged(const QString &path);
     void on_partitionChanged(QString drive);
+    void on_driveMounted(QString drive, QString mountDir);
 
 	void on_autoRunCheckbox_stateChanged(int state);
 	void on_notificationsCheckbox_stateChanged(int state); 
@@ -65,6 +65,8 @@ private slots:
     void on_appsButton_clicked();
     void on_macrosButton_clicked();
     void on_optionsEdit_textChanged();
+
+    void on_saveStateRequest(QSessionManager &manager);
 
     void optionCheckbox_triggered(int state);
 };

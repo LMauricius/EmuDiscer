@@ -32,8 +32,6 @@
 EmuDiscer::EmuDiscer(QWidget *parent)
 	: QDialog(parent)
     , mConfig((getConfigDirectory()+"/config.ini").toStdWString(), true)
-    , mFileWatcher(new QFileSystemWatcher(this))
-    , mPartitionWatcher(new QFileSystemWatcher(this))
 {
     ui.setupUi(this);
 
@@ -63,7 +61,8 @@ EmuDiscer::EmuDiscer(QWidget *parent)
 	connect(ui.okButton, SIGNAL(clicked()), this, SLOT(close()));
 	connect(ui.quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
 	//ui.emulatorsTabWidget->currentWidget()->setLayout(ui.emulatorSettingsLayout);
-	on_emulatorsTabWidget_currentChanged(ui.emulatorsTabWidget->currentIndex());
+    on_emulatorsTabWidget_currentChanged(ui.emulatorsTabWidget->currentIndex());
+    connect(qApp, SIGNAL(saveStateRequest(QSessionManager&)), this, SLOT(on_saveStateRequest(QSessionManager&)));
 
     /*Macro list*/
     mMacrosMenu = new QMenu(this);
@@ -80,12 +79,13 @@ EmuDiscer::EmuDiscer(QWidget *parent)
     }
     //connect(ui.macrosButton, SIGNAL(triggered()), mMacrosMenu, SLOT(show()));
 
+    // THIS IS NOT REALLY THE SAFEST WAY TO DETECT ALL NEW MOUNT POINTS
     /*Setup file watcher if needed*/
-    auto driveDirs = getRemovableDriveDirectories();
+    /*auto driveDirs = getRemovableDriveDirectories();
     if (driveDirs.size() > 0)
     {
         mFileWatcher->addPaths(driveDirs);
-        connect(mFileWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(on_mediaDirChanged(const QString &)));
+        //connect(mFileWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(on_mediaDirChanged(const QString &)));
         for (const QString &path : driveDirs)
         {
             QDir dir(path);
@@ -93,23 +93,28 @@ EmuDiscer::EmuDiscer(QWidget *parent)
                 mMediaDirectories.push_back(path + "/" + str);
             }
         }
-    }
+    }*/
 
 #if defined __unix__
     // unix' way of reacting to drive change
     UDisks2Watcher *udisks2watcher = new UDisks2Watcher(this);
     connect(udisks2watcher, SIGNAL(partitionChanged(QString)), this, SLOT(on_partitionChanged(QString)));
+    connect(udisks2watcher, SIGNAL(driveMounted(QString,QString)), this, SLOT(on_driveMounted(QString,QString)));
 #endif
 
 	/*
     Set defaults if needed
 	*/
 	mConfig.getStr(L"PS1", L"Path", L"");
-    mConfig.getStr(L"PS1", L"Options", L"-cdrom (DRIVE) -slowboot -fullscreen --nogui");
+    mConfig.getStr(L"PS1", L"Options", L"");
 	mConfig.getStr(L"PS2", L"Path", L"");
-	mConfig.getStr(L"PS2", L"Options", L"\"\" --usecd --fullscreen --nogui");
-	mConfig.getStr(L"PSP", L"Path", L"");
-	mConfig.getStr(L"PSP", L"Options", L"\"\"  --fullscreen");
+    mConfig.getStr(L"PS2", L"Options", L"");
+    mConfig.getStr(L"PSP", L"Path", L"");
+    mConfig.getStr(L"PSP", L"Options", L"");
+    mConfig.getStr(L"Gamecube", L"Path", L"");
+    mConfig.getStr(L"Gamecube", L"Options", L"");
+    mConfig.getStr(L"Wii", L"Path", L"");
+    mConfig.getStr(L"Wii", L"Options", L"");
 
 	/* Load config*/
 	ui.autoRunCheckbox->setCheckState(
@@ -166,7 +171,7 @@ bool EmuDiscer::nativeEvent(const QByteArray & eventType, void * message, long *
                     // load header bytes
                     char headerBuffer[128];
                     size_t charsToRead = 128;
-                    charsToRead = getDriveFileHeader(QString::fromStdString(driveLetter), headerBuffer, charsToRead);
+                    charsToRead = getDriveFileHeader(QString(driveLetter), headerBuffer, charsToRead);
 
                     // make an iso from the drive file (was an experiment - not working)
                     /*std::string linkFilename = mTempDir.path().toStdString() + "driveIsoFile" + driveLetter + ".iso";
@@ -384,6 +389,11 @@ void EmuDiscer::on_partitionChanged(QString drive)
     insertedMediaRaw(drive, headerBuffer, charsRead);
 }
 
+void EmuDiscer::on_driveMounted(QString drive, QString mountDir)
+{
+    insertedMediaDir(mountDir, drive);
+}
+
 void EmuDiscer::on_autoRunCheckbox_stateChanged(int state)
 {
 	mConfig.set(L"System", L"AutoRun", state == Qt::CheckState::Checked);
@@ -515,6 +525,12 @@ void EmuDiscer::on_optionsEdit_textChanged()
 		mConfig.setStr(mSelectedEmulator, L"Options", ui.optionsEdit->text().toStdWString());
 		mConfig.sync();
 	}
+}
+
+
+void EmuDiscer::on_saveStateRequest(QSessionManager &manager)
+{
+    manager.setRestartHint(QSessionManager::RestartHint::RestartNever);
 }
 
 void EmuDiscer::optionCheckbox_triggered(int state)
