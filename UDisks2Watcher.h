@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QVariant>
 #include <map>
+#include <memory>
 
 class UDisks2PropertyChangeWatcher;
 
@@ -16,21 +17,28 @@ public:
     ~UDisks2Watcher();
 
 signals:
-    void partitionChanged(QString devName);
+    void partitionChanged(QString driveName);
+    void driveMounted(QString driveName, QString mountDir);
 
 protected:
-    QList<QString> mBlockdevInterfaces, mDriveInterfaces;
-    std::map<QString, UDisks2PropertyChangeWatcher*> mPathWatcherMap;
+#ifdef __unix__
+    QList<QString> mBlockdevObjects;
+    std::map<QString, std::unique_ptr<UDisks2PropertyChangeWatcher>> mPathWatcherMap;
+    std::map<QString, QList<QString>> mDeviceMounts;
 
     void updateInterfaceList();
+#endif
 
 protected slots:
+#ifdef __unix__
     void on_blockDevicePropertiesChanged(QString objPath, QVariantMap changedProps);
     void on_interfaceAdded(QString objPath);
     void on_interfaceRemoved(QString objPath);
+#endif
 };
 
 
+#ifdef __unix__
 class UDisks2PropertyChangeWatcher : public QObject
 {
     Q_OBJECT
@@ -47,5 +55,6 @@ protected:
 protected slots:
     void on_propertiesChanged(QString interface, QVariantMap changedProps);
 };
+#endif
 
 #endif // UDISKS2WATCHER_H

@@ -1,78 +1,114 @@
-#ifdef __unix__
-
 #include "UDisks2Watcher.h"
+
+
+#ifdef __unix__
 #include <QtDBus>
+#endif
 
 namespace {
-    QString ServiceName = "org.freedesktop.UDisks2";
-    QString PathPrefix = "/org/freedesktop/UDisks2";
+
+#ifdef __unix__
+    const QString ServiceName = "org.freedesktop.UDisks2";
+    const QString PathPrefix = "/org/freedesktop/UDisks2";
+    const QString ObjectManagerInterface = "org.freedesktop.DBus.ObjectManager";
+    const QString PropertiesInterface = "org.freedesktop.DBus.Properties";
+
+    QString blockDevObjPath2Drive(const QString& objPath)
+    {
+        return QString("/dev/") + objPath.split('/').last();
+    }
+
+    QStringList aay2StringList(const QVariant& aayContainingVariant)
+    {
+        QStringList ret;
+
+        // The argument type is 'aay' which seems too complex for Qt to proccess, so we *simply* extract it
+        // fml
+
+        QDBusArgument argFirst;
+
+        if (aayContainingVariant.canConvert<QDBusArgument>())
+        {
+            argFirst = aayContainingVariant.value<QDBusArgument>();
+        }
+        else if (aayContainingVariant.canConvert<QDBusVariant>())
+        {
+            QDBusVariant dbvFirst = aayContainingVariant.value<QDBusVariant>();
+            QVariant vFirst = dbvFirst.variant();
+            QDBusArgument argFirst = vFirst.value<QDBusArgument>();
+        }
+        else
+        {
+            throw "ERRORRR";
+        }
+
+        //qDebug() << argFirst.currentSignature() << "\n";
+
+        argFirst.beginArray();
+
+        while ( !argFirst.atEnd() ) {
+            QByteArray content;
+            argFirst >> content;
+            ret.append(QString::fromUtf8(content));
+        }
+
+        argFirst.endArray();
+
+        return ret;
+    }
+
+#endif
 }
 
 
 
 UDisks2Watcher::UDisks2Watcher(QObject *parent) : QObject(parent)
 {
-    updateInterfaceList();
 
+#ifdef __unix__
+
+    updateInterfaceList();
 
     QDBusConnection::systemBus().connect(
         ServiceName, PathPrefix,
         "org.freedesktop.DBus.ObjectManager", "InterfacesAdded",
-        this, SLOT(interfaceAdded(QString))
+        this, SLOT(on_interfaceAdded(QString))
     );
     QDBusConnection::systemBus().connect(
         ServiceName, PathPrefix,
         "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved",
-        this, SLOT(interfaceRemoved(QString))
+        this, SLOT(on_interfaceRemoved(QString))
     );
+
+#endif
 
 
 }
 
 UDisks2Watcher::~UDisks2Watcher()
 {
-    for (auto pathWatcherPair : mPathWatcherMap)
-    {
-        disconnect(
-            pathWatcherPair.second, SIGNAL(objectPropertiesChanged(QString,QVariantMap)),
-            this, SLOT(on_blockDevicePropertiesChanged(QString,QVariantMap))
-        );
-        delete pathWatcherPair.second;
-    }
 }
+
+#ifdef __unix__
 
 void UDisks2Watcher::updateInterfaceList()
 {
     // Clear
-    mBlockdevInterfaces.clear();
-    mDriveInterfaces.clear();
-    for (auto pathWatcherPair : mPathWatcherMap)
-    {
-        disconnect(
-            pathWatcherPair.second, SIGNAL(objectPropertiesChanged(QString,QVariantMap)),
-            this, SLOT(on_blockDevicePropertiesChanged(QString,QVariantMap))
-        );
-        delete pathWatcherPair.second;
-    }
+    mBlockdevObjects.clear();
     mPathWatcherMap.clear();
 
     // Call object getter
-    QDBusMessage reply = QDBusConnection::systemBus().call(
-        QDBusMessage::createMethodCall(
-            ServiceName, PathPrefix,
-            "org.freedesktop.DBus.ObjectManager", "GetManagedObjects"
-        )
-    );
+    QDBusMessage reply = QDBusConnection::systemBus().call(QDBusMessage::createMethodCall(
+        ServiceName, PathPrefix,
+        ObjectManagerInterface, "GetManagedObjects"
+    ));
 
-    // List objects
+    // Remember objects
     if (reply.type() != QDBusMessage::ErrorMessage && reply.arguments().size() >= 1)
     {
-        qDebug() << "Listed UDisks2 objects";
-        QVariantMap pathInterfacesMap = qdbus_cast<QVariantMap>(reply.arguments().at(0));
-
-        for (auto pathInterIt = pathInterfacesMap.keyValueBegin(); pathInterIt != pathInterfacesMap.keyValueEnd(); pathInterIt++)
+        for (auto& pathInterPair : qdbus_cast<QVariantMap>(reply.arguments().at(0)).toStdMap())
         {
-            on_interfaceAdded(pathInterIt->first);
+            on_interfaceAdded(pathInterPair.first);
         }
     }
     else {
@@ -82,54 +118,119 @@ void UDisks2Watcher::updateInterfaceList()
 
 void UDisks2Watcher::on_interfaceAdded(QString objPath)
 {
-    if (objPath.startsWith(PathPrefix+"/block_devices")) {
-        mBlockdevInterfaces.append(objPath);
+    // If this is a block device (partition)
+    if (objPath.startsWith(PathPrefix+"/block_devices"))
+    {
+        mBlockdevObjects.removeAll(objPath);
+        mDeviceMounts[objPath].clear();
 
+        mBlockdevObjects.append(objPath);
+
+        // create watcher & connect signal
         if (mPathWatcherMap.find(objPath) == mPathWatcherMap.end())
         {
-            auto newWatcher = new UDisks2PropertyChangeWatcher(objPath, this);
-            mPathWatcherMap[objPath] = newWatcher;
+            mPathWatcherMap[objPath] = std::make_unique<UDisks2PropertyChangeWatcher>(objPath);
             connect(
-                newWatcher, SIGNAL(objectPropertiesChanged(QString,QVariantMap)),
+                mPathWatcherMap[objPath].get(), SIGNAL(objectPropertiesChanged(QString,QVariantMap)),
                 this, SLOT(on_blockDevicePropertiesChanged(QString,QVariantMap))
             );
         }
 
-        emit deviceChanged(objPath.split('/').last());
-    }
-    else if (objPath.startsWith(PathPrefix+"/drives")) {
-        mDriveInterfaces.append(objPath);
+        // check mount points
+        QDBusMessage reply = QDBusConnection::systemBus().call(QDBusMessage::createMethodCall(
+            ServiceName, objPath,
+            PropertiesInterface, "Get"
+        ) << QString("org.freedesktop.UDisks2.Filesystem") << QString("MountPoints"));
+
+        if (reply.type() != QDBusMessage::ErrorMessage)
+        {
+            if (reply.arguments().size() >= 1)
+            {
+                for (auto& mnt : aay2StringList(reply.arguments().at(0)))
+                {
+                    mDeviceMounts[objPath].push_back(mnt);
+                }
+            }
+        }
+
+        // partition signal
+        emit partitionChanged(blockDevObjPath2Drive(objPath));
     }
 }
 
 void UDisks2Watcher::on_interfaceRemoved(QString objPath)
 {
-    if (objPath.startsWith(PathPrefix+"/block_devices")) {
-        mBlockdevInterfaces.removeAll(objPath);
-    }
-    else if (objPath.startsWith(PathPrefix+"/drives")) {
-        mDriveInterfaces.removeAll(objPath);
-    }
-
-    auto it = mPathWatcherMap.find(objPath);
-    if (it != mPathWatcherMap.end())
+    if (objPath.startsWith(PathPrefix+"/block_devices"))
     {
-        disconnect(
-            it->second, SIGNAL(objectPropertiesChanged(QString,QVariantMap)),
-            this, SLOT(objectPropertiesChanged(QString,QVariantMap))
-        );
+        mBlockdevObjects.removeAll(objPath);
 
-        delete it->second;
-        mPathWatcherMap.erase(it);
+        auto it = mPathWatcherMap.find(objPath);
+        if (it != mPathWatcherMap.end())
+        {
+            disconnect(
+                it->second.get(), SIGNAL(objectPropertiesChanged(QString,QVariantMap)),
+                this, SLOT(objectPropertiesChanged(QString,QVariantMap))
+            );
+
+            mPathWatcherMap.erase(it);
+        }
     }
 }
 
 void UDisks2Watcher::on_blockDevicePropertiesChanged(QString objPath, QVariantMap changedProps)
 {
     // sanity check, if drive is ok
+    // size should always change to 0 when ejected, and change to non-0 when inserted
     if (changedProps.contains("Size") && changedProps["Size"].toUInt() > 0)
     {
-        emit partitionChanged(tr("/dev/") + objPath.split('/').last());
+        emit partitionChanged(blockDevObjPath2Drive(objPath));
+    }
+
+    if (changedProps.contains("MountPoints"))
+    {
+
+        /*qDebug() << changedProps["MountPoints"];
+        QStringList mnts = aay2StringList(changedProps["MountPoints"]);
+
+        for (const QString& mnt : mnts)
+        {
+            if (!mDeviceMounts[objPath].contains(mnt))
+            {
+                emit mediaMounted(blockDevObjPath2Drive(objPath), mnt);
+            }
+        }*/
+
+        // check mount points
+        QDBusMessage reply = QDBusConnection::systemBus().call(QDBusMessage::createMethodCall(
+            ServiceName, objPath,
+            PropertiesInterface, "Get"
+        ) << QString("org.freedesktop.UDisks2.Filesystem") << QString("MountPoints"));
+
+        if (reply.type() != QDBusMessage::ErrorMessage)
+        {
+            if (reply.arguments().size() >= 1)
+            {
+                QStringList mnts = aay2StringList(changedProps["MountPoints"]);
+
+                /*qDebug() << changedProps["MountPoints"] << "\n";
+                QDBusVariant dbvFirst = changedProps["MountPoints"].value<QDBusVariant>();
+                QVariant vFirst = dbvFirst.variant();
+                qDebug() << vFirst << "\n";*/
+                /*QDBusArgument argFirst = changedProps["MountPoints"].value<QDBusArgument>();
+                qDebug() << argFirst.currentSignature() << "\n";*/
+
+                for (const QString& mnt : mnts)
+                {
+                    if (!mDeviceMounts[objPath].contains(mnt))
+                    {
+                        emit driveMounted(blockDevObjPath2Drive(objPath), mnt);
+                    }
+                }
+
+                mDeviceMounts[objPath] = mnts;
+            }
+        }
+
     }
 }
 
@@ -142,7 +243,7 @@ UDisks2PropertyChangeWatcher::UDisks2PropertyChangeWatcher(QString objPath, QObj
     QDBusConnection::systemBus().connect(
         ServiceName, mObjPath,
         "org.freedesktop.DBus.Properties", "PropertiesChanged",
-        this, SLOT(on_blockDevicePropertiesChanged(QString,QVariantMap))
+        this, SLOT(on_propertiesChanged(QString,QVariantMap))
     );
 }
 
@@ -159,6 +260,5 @@ void UDisks2PropertyChangeWatcher::on_propertiesChanged(QString interface, QVari
 {
     emit objectPropertiesChanged(mObjPath, changedProps);
 }
-
 
 #endif
