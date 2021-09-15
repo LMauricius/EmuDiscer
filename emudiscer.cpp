@@ -29,11 +29,21 @@
 #include <fstream>
 
 
-EmuDiscer::EmuDiscer(QWidget *parent)
+
+#define STRINGIFY2(X) #X
+#define STRINGIFY(X) STRINGIFY2(X)
+
+
+EmuDiscer::EmuDiscer(QSharedMemory* sharedMem, QWidget *parent)
 	: QDialog(parent)
     , mConfig((getConfigDirectory()+"/config.ini").toStdWString(), true)
+    , mSharedMem(sharedMem)
 {
     ui.setupUi(this);
+
+    QTimer *periodicTimer = new QTimer(this);
+    connect(periodicTimer, SIGNAL(timeout()), this, SLOT(on_timer()));
+    periodicTimer->start(2000);
 
     if (!std::filesystem::exists(getConfigDirectory().toStdWString()))
     {
@@ -52,7 +62,7 @@ EmuDiscer::EmuDiscer(QWidget *parent)
 	mSysTrayIcon = new QSystemTrayIcon(this);
 	mSysTrayIcon->setContextMenu(mSysTrayMenu);
     mSysTrayIcon->setIcon(QIcon(windowIcon().pixmap(128)));
-	mSysTrayIcon->setToolTip("EmuDiscer v1.0");
+    mSysTrayIcon->setToolTip("EmuDiscer v" EMUDISCER_APP_VERSION);
 	connect(mSysTrayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(on_trayIconActivated(QSystemTrayIcon::ActivationReason)));
 	connect(mSysTrayIcon, SIGNAL(messageClicked()), this, SLOT(on_notificationClicked()));
 	mSysTrayIcon->show();
@@ -117,16 +127,18 @@ EmuDiscer::EmuDiscer(QWidget *parent)
     mConfig.getStr(L"Wii", L"Options", L"");
 
 	/* Load config*/
+    ui.autoRunCheckbox->blockSignals(true);
 	ui.autoRunCheckbox->setCheckState(
-        mConfig.get<bool>(L"System", L"AutoRun", false) ? Qt::CheckState::Checked : Qt::CheckState::Unchecked
+        isAutoRun() ? Qt::CheckState::Checked : Qt::CheckState::Unchecked
     );
+    ui.autoRunCheckbox->blockSignals(false);
 	ui.notificationsCheckbox->setCheckState(
 		mConfig.get<bool>(L"System", L"ShowNotifications", true) ? Qt::CheckState::Checked : Qt::CheckState::Unchecked
-	);
-	//ui.emulatorList->setCurrentItem(ui.emulatorList->itemAt(0, 0));
+    );
 
     // show to receive native events
     //qApp->installNativeEventFilter(this);
+
     // show & hide to receive events
     show();
     hide();
@@ -392,6 +404,20 @@ void EmuDiscer::on_partitionChanged(QString drive)
 void EmuDiscer::on_driveMounted(QString drive, QString mountDir)
 {
     insertedMediaDir(mountDir, drive);
+}
+
+void EmuDiscer::on_timer()
+{
+    // Check if needs to raise
+    mSharedMem->lock();
+    if (((SharedMemData*)mSharedMem->data())->raiseWindow)
+    {
+        show();
+        activateWindow();
+        //setFocus();
+        ((SharedMemData*)mSharedMem->data())->raiseWindow = false;
+    }
+    mSharedMem->unlock();
 }
 
 void EmuDiscer::on_autoRunCheckbox_stateChanged(int state)

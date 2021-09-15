@@ -46,7 +46,7 @@ QString getConfigDirectory()
 
 QString getUsername()
 {
-    return getHomeDirectory().split(QDir::separator()).last();
+    return QDir::fromNativeSeparators(getHomeDirectory()).split('/').last();
 }
 
 QStringList getAppDirectories()
@@ -274,20 +274,44 @@ size_t getDriveFileHeader(QString drive, char *headerBuffer, size_t charsToRead)
     return charsRead;
 }
 
+bool isAutoRun()
+{
+    QString progPath = QCoreApplication::applicationFilePath();
+
+#ifdef _WIN32
+    QSettings settings("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
+
+    progPath.replace("/", "\\");
+    progPath = QString("\"") + progPath + "\"";
+
+    return settings.contains("EmuDiscer") && settings.value("EmuDiscer") == progPath;
+#elif defined __unix__
+    QString target = getHomeDirectory() + "/.config/autostart/LMauricius.EmuDiscer.desktop";
+
+    if (!QFile::exists(target))
+        return false;
+    else
+    {
+        WMiIni desktop(target.toStdWString(), false);
+        return desktop.getStr(L"Desktop Entry", L"Exec", L"") == progPath;
+    }
+#endif
+}
+
 void setAutoRun(bool autorun)
 {
+    QString progPath = QCoreApplication::applicationFilePath();
+
 #ifdef _WIN32
 	QSettings settings("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
 
 	if (autorun)
-	{
-		QString value = QCoreApplication::applicationFilePath();
-
-		value.replace("/", "\\");
-		value = QString("\"") + value + "\"";
+    {
+        progPath.replace("/", "\\");
+        progPath = QString("\"") + progPath + "\"";
 
 		//write value to the register
-		settings.setValue("EmuDiscer", value);
+        settings.setValue("EmuDiscer", progPath);
 	}
 	else
 	{
@@ -298,7 +322,7 @@ void setAutoRun(bool autorun)
 
     if (autorun)
     {
-        QString progPath = QString("\"%1\"").arg(qApp->arguments().first());
+        //QString progPath = QString("\"%1\"").arg(qApp->arguments().first());
 
         //QFile::copy(":/desktop/LMauricius.EmuDiscer.desktop", target);
         WMiIni desktop(target.toStdWString(), false);

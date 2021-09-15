@@ -2,12 +2,11 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += console
-
 win32 {
     QT   += winextras
-    LIBS += -lshell32
+    #win32:LIBS += -luser32
 }
+
 unix {
     QT += dbus
     #DBUS_ADAPTORS += UDisks2_adaptor
@@ -18,6 +17,8 @@ unix {
     #UDisks2_interface.files = org.freedesktop.UDisks2.xml
     #UDisks2_interface.header_flags = -idbusUdisks2XmlTypes.h
     #UDisks2_interface.source_flags = -idbusUdisks2XmlTypes.h
+
+    CONFIG += console
 }
 
 CONFIG += c++17
@@ -51,6 +52,10 @@ TRANSLATIONS += \
     EmuDiscer_en_US.ts
 CONFIG += lrelease
 CONFIG += embed_translations
+
+# Version
+VERSION = 1.0.0
+DEFINES += EMUDISCER_APP_VERSION=\\\"$$VERSION\\\"
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

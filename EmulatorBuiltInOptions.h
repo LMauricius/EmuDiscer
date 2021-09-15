@@ -15,7 +15,7 @@ std::map<QString, std::list<std::pair<QString, QString>>> OptionsPerProgram = {
     },
     {"pcsx2", {
          {"Run from CD/DVD", " --usecd"},
-         {"Show PS splashscreen (not recommended - game doesn't boot)", " --fullboot"},
+         {"Show PS2 splashscreen (not recommended - game doesn't boot)", " --fullboot"},
          {"Start in fullscreen", " --fullscreen"},
          {"Run without a GUI", " --nogui"}
      }
@@ -32,7 +32,7 @@ std::map<QString, std::list<std::pair<QString, QString>>> OptionsPerProgram = {
 #elif defined __unix__
          {"Run from CD/DVD", " --exec=(DRIVE)"},
 #endif
-         {"Skip library loading (fast open)", " --batch"}
+         {"Skip game list (open quickly)", " --batch"}
      }
     }
 };

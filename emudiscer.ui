@@ -70,7 +70,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Notify when a game has been inserted with no emulator setup</string>
+         <string>Notify when a game has been inserted with no emulator configured</string>
         </property>
        </widget>
       </item>

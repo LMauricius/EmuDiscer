@@ -85,5 +85,6 @@ size_t getDriveFileHeader(QString drive, char *headerBuffer, size_t charsToRead)
 bool fileExists(const QString& name);
 bool directoryExists(const QString& name);
 void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring& to);
+bool isAutoRun();
 void setAutoRun(bool autorun);
 void startProgram(const std::wstring& path, const std::wstring& options);

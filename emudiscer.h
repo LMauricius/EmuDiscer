@@ -8,16 +8,24 @@
 #include <QAbstractNativeEventFilter>
 #include <QTemporaryDir>
 #include <QSessionManager>
+#include <QTimer>
+#include <QSharedMemory>
 
 #include "ui_emudiscer.h"
 #include "MiIni.h"
+
+struct SharedMemData
+{
+    //WId mainWindow;
+    bool raiseWindow;
+};
 
 class EmuDiscer : public QDialog/*, public QAbstractNativeEventFilter*/
 {
 	Q_OBJECT
 
 public:
-	EmuDiscer(QWidget *parent = 0);
+    EmuDiscer(QSharedMemory* sharedMem, QWidget *parent = 0);
 	~EmuDiscer();
 
 private:
@@ -27,6 +35,7 @@ private:
     QMenu* mMacrosMenu;
 	QSystemTrayIcon* mSysTrayIcon;
     QTemporaryDir mTempDir;
+    QSharedMemory* mSharedMem;
 
 	std::wstring mSelectedEmulator;
 
@@ -53,6 +62,7 @@ private slots:
     void on_mediaDirChanged(const QString &path);
     void on_partitionChanged(QString drive);
     void on_driveMounted(QString drive, QString mountDir);
+    void on_timer();
 
 	void on_autoRunCheckbox_stateChanged(int state);
 	void on_notificationsCheckbox_stateChanged(int state); 
