@@ -33,6 +33,7 @@ Makefile*
 *.prl
 *.exe
 InstallerPackage/packages/data/
+bin/*
 
 # Qt unit tests
 target_wrapper.*
