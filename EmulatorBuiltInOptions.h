@@ -21,7 +21,6 @@ std::map<QString, std::list<std::pair<QString, QString>>> OptionsPerProgram = {
      }
     },
     {"ppsspp", {
-         {"Don't use iso", "\"\""},
          {"Start in fullscreen", " --fullscreen"}
      }
     },
