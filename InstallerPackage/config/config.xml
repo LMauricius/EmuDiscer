@@ -16,5 +16,6 @@
     <StartMenuDir>Emulation</StartMenuDir>
     <AllowNonAsciiCharacters>true</AllowNonAsciiCharacters>
     <TargetDir>@ApplicationsDirUser@/EmuDiscer</TargetDir>
-    <AdminTargetDir>@ApplicationsDirUser@/EmuDiscer</AdminTargetDir>
+    <AdminTargetDir>C:/Program Files/EmuDiscer</AdminTargetDir>
+    <SupportsModify>false</SupportsModify>
 </Installer>

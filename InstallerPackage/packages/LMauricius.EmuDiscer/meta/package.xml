@@ -8,4 +8,5 @@
         <License name="GPLv3" file="LICENSE" />
     </Licenses>
     <Default>true</Default>
+    <Script>installscript.qs</Script>
 </Package>
