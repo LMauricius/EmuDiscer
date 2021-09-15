@@ -36,6 +36,7 @@ private:
 	QSystemTrayIcon* mSysTrayIcon;
     QTemporaryDir mTempDir;
     QSharedMemory* mSharedMem;
+    QString mLastEmulatorType;
 
 	std::wstring mSelectedEmulator;
 

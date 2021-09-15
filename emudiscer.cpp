@@ -243,6 +243,7 @@ bool EmuDiscer::tryLaunchEmu(QString emulatorType, QString mediaType, const std:
         }
         else if (mConfig.get<bool>(L"System", L"ShowNotifications"))
         {
+            mLastEmulatorType = emulatorType;
             mSysTrayIcon->showMessage("No emulator", QString("A %1 has been inserted but a %2 emulator has not been set up. Click to set it up.").arg(mediaType, emulatorType), windowIcon());
         }
 
@@ -359,6 +360,14 @@ void EmuDiscer::on_trayIconActivated(QSystemTrayIcon::ActivationReason reason)
 
 void EmuDiscer::on_notificationClicked()
 {
+    for (int i=0; i<ui.emulatorsTabWidget->count(); i++)
+    {
+        if (ui.emulatorsTabWidget->tabText(i) == mLastEmulatorType)
+        {
+            ui.emulatorsTabWidget->setCurrentIndex(i);
+            break;
+        }
+    }
 	show();
 	activateWindow();
 }
@@ -618,7 +627,7 @@ bool checkIfPathOk(QLineEdit* lne)
     bool ok = fileExists(programFile);
 	QPalette palette = lne->style()->standardPalette();
 
-	if (!ok && lne->text() != "")// error color
+    if (!ok /*&& lne->text() != ""*/)// error color
 	{
 		palette.setColor(QPalette::Base, Qt::red);
 		//palette.setColor(QPalette::Text, Qt::white);
