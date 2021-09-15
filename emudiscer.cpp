@@ -135,6 +135,7 @@ EmuDiscer::EmuDiscer(QSharedMemory* sharedMem, QWidget *parent)
 	ui.notificationsCheckbox->setCheckState(
 		mConfig.get<bool>(L"System", L"ShowNotifications", true) ? Qt::CheckState::Checked : Qt::CheckState::Unchecked
     );
+    checkIfPathOk(ui.pathEdit);
 
     // show to receive native events
     //qApp->installNativeEventFilter(this);
@@ -467,8 +468,6 @@ void EmuDiscer::on_emulatorsTabWidget_currentChanged(int index)
     ui.optionsEdit->setText(QString::fromStdWString(mConfig.getStr(mSelectedEmulator, L"Options")));// this goes before pathEdit
     ui.pathEdit->setText(QString::fromStdWString(mConfig.getStr(mSelectedEmulator, L"Path")));
 
-    /*Add built-in options*/
-    //emulatorChanged();
     emulatorChanged();
 }
 
@@ -512,6 +511,20 @@ void EmuDiscer::emulatorChanged()
     }
 }
 
+void EmuDiscer::enableDefaultOptions()
+{
+    for (int i=0; i<ui.launchOptionCheckboxesLayout->count(); i++)
+    {
+        auto li = ui.launchOptionCheckboxesLayout->itemAt(i);
+        auto w = li->widget();
+        if (w)
+        {
+            QCheckBox *c = (QCheckBox*)w;
+            c->setChecked(!c->text().contains("not recommended"));
+        }
+    }
+}
+
 void EmuDiscer::on_pathEdit_textChanged()
 {
 	if (mSelectedEmulator != L"")
@@ -525,23 +538,37 @@ void EmuDiscer::on_pathEdit_textChanged()
 
 void EmuDiscer::on_pathButton_clicked()
 {
+    bool setDefaults = (ui.pathEdit->text().size() == 0);
     QFileDialog dialog;
     QString filename = dialog.getOpenFileName(this, "Select executable", ui.pathEdit->text(), getExeFileFilter());
 
     if (filename.size())
     {
         ui.pathEdit->setText(QString("\"") + filename + "\"");
+
+        if (setDefaults)
+        {
+            enableDefaultOptions();
+        }
     }
 }
 
 void EmuDiscer::on_appsButton_clicked()
 {
+    bool setDefaults = (ui.pathEdit->text().size() == 0);
     AppDialog dialog;
     dialog.setWindowIcon(windowIcon());
     dialog.exec();
 
     if (dialog.appPath().size())
+    {
         ui.pathEdit->setText(dialog.appPath());
+
+        if (setDefaults)
+        {
+            enableDefaultOptions();
+        }
+    }
 }
 
 void EmuDiscer::on_macrosButton_clicked()

@@ -56,6 +56,7 @@ private:
     bool insertedMediaRaw(QString drive, const char *header, size_t headerSize);
     bool tryLaunchEmu(QString emulatorType, QString mediaType, const std::map<std::wstring, std::wstring>& vars);
     void emulatorChanged();
+    void enableDefaultOptions();
 
 private slots:
 	void on_trayIconActivated(QSystemTrayIcon::ActivationReason reason);
