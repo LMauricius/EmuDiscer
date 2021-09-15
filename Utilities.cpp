@@ -293,7 +293,7 @@ bool isAutoRun()
     else
     {
         WMiIni desktop(target.toStdWString(), false);
-        return desktop.getStr(L"Desktop Entry", L"Exec", L"") == progPath;
+        return desktop.getStr(L"Desktop Entry", L"Exec", L"") == progPath.toStdWString();
     }
 #endif
 }
