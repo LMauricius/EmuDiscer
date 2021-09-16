@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
     // single instance
     QSharedMemory sharedMemory;
-    sharedMemory.setKey (QString("EmuDiscerData_")+getUsername());
+    sharedMemory.setKey (QString("EmuDiscerSharedData_")+getUsername());
     qDebug() << sharedMemory.nativeKey() << "\n";
     if (!sharedMemory.create(sizeof(SharedMemData)))
     {
