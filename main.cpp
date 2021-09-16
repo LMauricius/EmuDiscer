@@ -16,30 +16,6 @@ int main(int argc, char *argv[])
 	app.setApplicationName("EmuDiscer");
     app.setApplicationVersion(EMUDISCER_APP_VERSION);
 
-    // single instance
-    QSharedMemory sharedMemory;
-    sharedMemory.setKey (QString("EmuDiscerSharedData_")+getUsername());
-    qDebug() << sharedMemory.nativeKey() << "\n";
-    if (!sharedMemory.create(sizeof(SharedMemData)))
-    {
-
-        qDebug() << "Already running" << "\n";
-        sharedMemory.attach();
-
-        sharedMemory.lock();
-        ((SharedMemData*)sharedMemory.data())->raiseWindow = true;
-/*#ifdef _WIN32
-        //SetForegroundWindow((HWND)(*((WId*)sharedMemory.data())));
-        ShowWindow((HWND)(((SharedMemData*)sharedMemory.data())->mainWindow), SW_SHOWNORMAL);
-#elif defined __unix__
-#endif*/
-        sharedMemory.unlock();
-
-        sharedMemory.detach();
-        return 0;
-
-    }
-
 	// command line
 	QCommandLineParser parser;
 	parser.addHelpOption();
@@ -50,8 +26,32 @@ int main(int argc, char *argv[])
 		"Open settings window at launch"
 	);
 	parser.addOption(settingsOption);
+    QCommandLineOption multiInstanceOption(
+        { "m", "multi-instance" },
+        "Run program even if another instance is running"
+    );
+    parser.addOption(multiInstanceOption);
 
 	parser.process(app);
+
+    // single instance
+    QSharedMemory sharedMemory;
+    sharedMemory.setKey (QString("EmuDiscerSharedData_")+getUsername());
+    qDebug() << sharedMemory.nativeKey() << "\n";
+    if (!sharedMemory.create(sizeof(SharedMemData)) && !parser.isSet(multiInstanceOption))
+    {
+
+        qDebug() << "Already running" << "\n";
+        sharedMemory.attach();
+
+        sharedMemory.lock();
+        ((SharedMemData*)sharedMemory.data())->raiseWindow = true;
+        sharedMemory.unlock();
+
+        sharedMemory.detach();
+        return 0;
+
+    }
 
 	// options window
     EmuDiscer w(&sharedMemory);
@@ -59,12 +59,11 @@ int main(int argc, char *argv[])
 	if (parser.isSet(settingsOption))
 		w.show();
 
-    // save handle
+    // attach to shared data
     sharedMemory.attach();
 
     sharedMemory.lock();
     ((SharedMemData*)sharedMemory.data())->raiseWindow = false;
-    //((SharedMemData*)sharedMemory.data())->mainWindow = w.winId();
     sharedMemory.unlock();
 
 	// finally, execute qt app
