@@ -589,11 +589,16 @@ bool checkIfPathOk(QLineEdit* lne, const QPalette& defaultPalette)
     bool ok = fileExists(programFile);
     QPalette palette = defaultPalette;
 
-    if (!ok /*&& lne->text() != ""*/)// error color
+    if (!ok && lne->text() != "")// error color
 	{
 		palette.setColor(QPalette::Base, Qt::red);
 		//palette.setColor(QPalette::Text, Qt::white);
 	}
+    if (lne->text() == "")// needs setup color
+    {
+        palette.setColor(QPalette::Base, QColor(192, 96, 0));
+        //palette.setColor(QPalette::Text, Qt::white);
+    }
 
 	lne->setPalette(palette);
 	return ok;

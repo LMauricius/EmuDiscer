@@ -42,8 +42,6 @@ namespace {
             throw "ERRORRR";
         }
 
-        //qDebug() << argFirst.currentSignature() << "\n";
-
         argFirst.beginArray();
 
         while ( !argFirst.atEnd() ) {
@@ -188,18 +186,6 @@ void UDisks2Watcher::on_blockDevicePropertiesChanged(QString objPath, QVariantMa
 
     if (changedProps.contains("MountPoints"))
     {
-
-        /*qDebug() << changedProps["MountPoints"];
-        QStringList mnts = aay2StringList(changedProps["MountPoints"]);
-
-        for (const QString& mnt : mnts)
-        {
-            if (!mDeviceMounts[objPath].contains(mnt))
-            {
-                emit mediaMounted(blockDevObjPath2Drive(objPath), mnt);
-            }
-        }*/
-
         // check mount points
         QDBusMessage reply = QDBusConnection::systemBus().call(QDBusMessage::createMethodCall(
             ServiceName, objPath,
@@ -211,13 +197,6 @@ void UDisks2Watcher::on_blockDevicePropertiesChanged(QString objPath, QVariantMa
             if (reply.arguments().size() >= 1)
             {
                 QStringList mnts = aay2StringList(changedProps["MountPoints"]);
-
-                /*qDebug() << changedProps["MountPoints"] << "\n";
-                QDBusVariant dbvFirst = changedProps["MountPoints"].value<QDBusVariant>();
-                QVariant vFirst = dbvFirst.variant();
-                qDebug() << vFirst << "\n";*/
-                /*QDBusArgument argFirst = changedProps["MountPoints"].value<QDBusArgument>();
-                qDebug() << argFirst.currentSignature() << "\n";*/
 
                 for (const QString& mnt : mnts)
                 {

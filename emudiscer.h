@@ -16,11 +16,10 @@
 
 struct SharedMemData
 {
-    //WId mainWindow;
     bool raiseWindow;
 };
 
-class EmuDiscer : public QDialog/*, public QAbstractNativeEventFilter*/
+class EmuDiscer : public QDialog
 {
 	Q_OBJECT
 
@@ -70,7 +69,6 @@ private slots:
 	void on_autoRunCheckbox_stateChanged(int state);
 	void on_notificationsCheckbox_stateChanged(int state); 
 
-	//void on_emulatorList_currentTextChanged(const QString& currentText);
 	void on_emulatorsTabWidget_currentChanged(int index);
 
 	void on_pathEdit_textChanged();
