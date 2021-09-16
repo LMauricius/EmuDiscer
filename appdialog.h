@@ -31,6 +31,8 @@ private slots:
     void on_appTree_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
     void on_buttonBox_accepted();
     void on_buttonBox_rejected();
+
+    void on_iconLoadedByFuture();
 };
 
 #endif // APPDIALOG_H

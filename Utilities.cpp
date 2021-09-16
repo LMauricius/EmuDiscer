@@ -32,15 +32,22 @@ QString getExeFileFilter()
 
 QString getProgramPath()
 {
+    auto progPath = QCoreApplication::applicationFilePath();
 #ifdef _WIN32
-    return QCoreApplication::applicationFilePath();
+    if (progPath.size() && progPath[0] != '"' && progPath[0] != '\'')
+        return QString("\"%1\"").arg(QCoreApplication::applicationFilePath());
+    else
+        return QCoreApplication::applicationFilePath();
 #elif defined __unix__
     auto appimagePath = qgetenv("APPIMAGE");
     if (appimagePath.size())
     {
         return appimagePath;
     }
-    return QCoreApplication::applicationFilePath();
+    if (progPath.size() && progPath[0] != '"' && progPath[0] != '\'')
+        return QString("\"%1\"").arg(QCoreApplication::applicationFilePath());
+    else
+        return QCoreApplication::applicationFilePath();
 #endif
 }
 
@@ -109,29 +116,9 @@ AppDef getApps()
             {
                 QString name = info.baseName()/*.remove(".lnk")*/;
                 QString exec = QString("\"")+info.symLinkTarget()+"\"";
-                QIcon icon;
 
                 // extract icon
-                {
-                    QString natFStr = QDir::toNativeSeparators(info.symLinkTarget());
-                    wchar_t *cFilename = new wchar_t[natFStr.length()+1];
-                    natFStr.toWCharArray(cFilename);
-                    cFilename[natFStr.length()] = 0;
-
-                    const UINT numIcons = ExtractIconExW(cFilename, -1, nullptr, nullptr, 0);
-                    if (numIcons > 0)
-                    {
-                        QScopedArrayPointer<HICON> winIcons(new HICON[numIcons]);
-                        const UINT numExtrIcons = ExtractIconExW(cFilename, 0, winIcons.data(), nullptr, 1);
-
-                        if (numExtrIcons > 0)
-                        {
-                            icon = QtWin::fromHICON(winIcons[0]);
-                        }
-                    }
-
-                    delete[] cFilename;
-                }
+                QString natFStr = QDir::toNativeSeparators(info.symLinkTarget());
 
                 AppDef *parent = &root;
                 QString relPath = info.absoluteFilePath().mid(path.size()+1);
@@ -141,7 +128,31 @@ AppDef getApps()
                 {
                     parent = &(parent->subApps[cat]);
                 }
-                parent->subApps[name] = AppDef(exec, icon);
+                parent->subApps[name] = AppDef(
+                            exec,
+                            [natFStr](){
+                                QIcon icon;
+
+                                wchar_t *cFilename = new wchar_t[natFStr.length()+1];
+                                natFStr.toWCharArray(cFilename);
+                                cFilename[natFStr.length()] = 0;
+
+                                const UINT numIcons = ExtractIconExW(cFilename, -1, nullptr, nullptr, 0);
+                                if (numIcons > 0)
+                                {
+                                    QScopedArrayPointer<HICON> winIcons(new HICON[numIcons]);
+                                    const UINT numExtrIcons = ExtractIconExW(cFilename, 0, winIcons.data(), nullptr, 1);
+
+                                    if (numExtrIcons > 0)
+                                    {
+                                        icon = QtWin::fromHICON(winIcons[0]);
+                                    }
+                                }
+
+                                delete[] cFilename;
+                                return icon;
+                            }
+                );
             }
         }
     }
@@ -222,7 +233,12 @@ AppDef getApps()
                 QString name = QString::fromStdWString(appInfo.getStr(L"Desktop Entry", L"Name"));
                 QString exec = QString::fromStdWString(appInfo.getStr(L"Desktop Entry", L"Exec"));
                 QString iconFile = QString::fromStdWString(appInfo.getStr(L"Desktop Entry", L"Icon"));
-                root.subApps[cat].subApps[name] = AppDef(exec, QIcon::fromTheme(iconFile));
+                root.subApps[cat].subApps[name] = AppDef(
+                            exec,
+                            [iconFile](){
+                                return QIcon::fromTheme(iconFile);
+                            }
+                );
             }
         }
     }
@@ -337,9 +353,6 @@ void setAutoRun(bool autorun)
 
     if (autorun)
     {
-        //QString progPath = QString("\"%1\"").arg(qApp->arguments().first());
-
-        //QFile::copy(":/desktop/LMauricius.EmuDiscer.desktop", target);
         WMiIni desktop(target.toStdWString(), false);
         desktop.setStr(L"Desktop Entry", L"Exec", progPath.toStdWString());
         desktop.setStr(L"Desktop Entry", L"Name", L"EmuDiscer");
@@ -411,26 +424,6 @@ void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring&
 
 void startProgram(const QString& path, const QString& options, const QString& workdir, const std::map<QString, QString>& envVars)
 {
-/*#ifdef WIN32
-    std::wstring dir = path.substr(0, path.find_last_of(L"\\/"));
-
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi, sizeof(pi));
-
-    CreateProcessW(path.c_str(), const_cast<wchar_t*>(options.c_str()),
-        NULL, NULL, false, 0, NULL, dir.c_str(), &si, &pi);
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-#else
-    QProcess p(nullptr);
-    p.startDetached(
-        QString::fromStdWString(path) + QString::fromStdWString(options)
-    );
-#endif*/
     QStringList firstOptions = QProcess::splitCommand(path);
     QStringList secondOptions = QProcess::splitCommand(options);
     QString prog = firstOptions.first();
@@ -450,8 +443,6 @@ void startProgram(const QString& path, const QString& options, const QString& wo
         p.setWorkingDirectory(workdir);
     }
     p.setProcessEnvironment(env);
-    /*p.startDetached(
-        QString::fromStdWString(path) + " " + QString::fromStdWString(options)
-    );*/
+
     p.startDetached();
 }

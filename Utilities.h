@@ -8,56 +8,9 @@
 #include <map>
 #include "MiIni.h"
 
-/*namespace QMiIniUtils
-{
-    class QMiIniReadFunc
-    {
-    public:
-        void operator()(const QString& filename, std::function<void(QTextStream&)> streamReader) {
-            QFile file = QFile(filename);
-
-            if (file.isOpen()) {
-                QTextStream qts(&file);
-                streamReader(qts);
-                file.close();
-            }
-        }
-    };
-
-    class QMiIniWriteFunc
-    {
-    public:
-        void operator()(const QString& filename, std::function<void(QTextStream&)> streamWriter) {
-            QFile file = QFile(filename);
-
-            if (file.isOpen()) {
-                QTextStream qts(&file);
-                streamWriter(qts);
-                file.close();
-            }
-            else {
-                throw std::runtime_error(
-                        ((std::stringstream&)(std::stringstream() <<
-                            "Can't open ini file \"" << filename.toStdString() << "\"!")).str()
-                );
-            }
-        }
-    };
-}
-
-using QMiIni = MiIni<
-    QString,
-    QTextStream,
-    QTextStream,
-    QTextStream,
-    QString,
-    QMiIniUtils::QMiIniReadFunc,
-    QMiIniUtils::QMiIniWriteFunc
->;*/
-
 struct AppDef
 {
-    inline AppDef(QString path, QIcon icon): path(path), icon(icon) {}
+    inline AppDef(QString path, std::function<QIcon()> iconLoader): path(path), iconLoader(iconLoader) {}
     AppDef() = default;
     AppDef(const AppDef&) = default;
     AppDef(AppDef&&) = default;
@@ -66,7 +19,7 @@ struct AppDef
     AppDef& operator=(AppDef&&) = default;
 
     QString path;
-    QIcon icon;
+    std::function<QIcon()> iconLoader = {};
 
     std::map<QString, AppDef> subApps;
 };

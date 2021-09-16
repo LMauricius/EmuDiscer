@@ -2,6 +2,19 @@
 #include "ui_appdialog.h"
 
 #include <QPushButton>
+#include <QIcon>
+#include <QtConcurrent>
+#include <QFuture>
+#include <QFutureWatcher>
+
+namespace
+{
+    struct IconLoaderResult
+    {
+        QTreeWidgetItem *item;
+        QIcon icon;
+    };
+}
 
 AppDialog::AppDialog(QWidget *parent) :
     QDialog(parent),
@@ -38,7 +51,6 @@ QString AppDialog::appPath() const
 void AppDialog::addApp(const QString &name, const AppDef& app, QTreeWidgetItem *parent)
 {
     QTreeWidgetItem *item = new QTreeWidgetItem((QTreeWidget*)nullptr, {name, app.path});
-    item->setIcon(0, app.icon);
 
     if (parent)
     {
@@ -49,10 +61,34 @@ void AppDialog::addApp(const QString &name, const AppDef& app, QTreeWidgetItem *
         ui->appTree->addTopLevelItem(item);
     }
 
+    // Load icon concurrently
+    if (app.iconLoader)
+    {
+        std::function<QIcon()> iconLoader = app.iconLoader;
+        auto future = QtConcurrent::run([item, iconLoader](){
+            IconLoaderResult res;
+            res.item = item;
+            res.icon = iconLoader();
+            return res;
+        });
+        auto watcher = new QFutureWatcher<IconLoaderResult>(this);
+        connect(watcher, SIGNAL(finished()), this, SLOT(on_iconLoadedByFuture()));
+        connect(watcher, SIGNAL(finished()), watcher, SLOT(deleteLater()));
+        watcher->setFuture(future);
+    }
+
+    // add children
     for (auto& nameAppPair : app.subApps)
     {
         addApp(nameAppPair.first, nameAppPair.second, item);
     }
+}
+
+void AppDialog::on_iconLoadedByFuture()
+{
+    auto *watcher = (QFutureWatcher<IconLoaderResult>*)sender();
+    IconLoaderResult res = watcher->result();
+    res.item->setIcon(0, res.icon);
 }
 
 void AppDialog::on_filterEdit_textChanged()
@@ -125,9 +161,12 @@ void AppDialog::on_appTree_currentItemChanged(QTreeWidgetItem *current, QTreeWid
 
 void AppDialog::on_appTree_itemDoubleClicked(QTreeWidgetItem *item, int column)
 {
-    ui->appTree->setCurrentItem(item);
-    mAppPath = ui->appTree->currentItem()->text(1);
-    close();
+    if (ui->appTree->currentItem()->text(1).size())
+    {
+        ui->appTree->setCurrentItem(item);
+        mAppPath = ui->appTree->currentItem()->text(1);
+        close();
+    }
 }
 
 void AppDialog::on_buttonBox_accepted()
