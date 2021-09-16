@@ -54,7 +54,7 @@ CONFIG += lrelease
 CONFIG += embed_translations
 
 # Version
-VERSION = 1.0.0
+VERSION = 1.1
 DEFINES += EMUDISCER_APP_VERSION=\\\"$$VERSION\\\"
 
 # Default rules for deployment.
