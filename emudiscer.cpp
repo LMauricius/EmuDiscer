@@ -45,9 +45,9 @@ EmuDiscer::EmuDiscer(QSharedMemory* sharedMem, QWidget *parent)
     connect(periodicTimer, SIGNAL(timeout()), this, SLOT(on_timer()));
     periodicTimer->start(2000);
 
-    if (!std::filesystem::exists(getConfigDirectory().toStdWString()))
+    if (!QDir(getConfigDirectory()).exists())
     {
-        std::filesystem::create_directory(getConfigDirectory().toStdWString());
+        QDir(getConfigDirectory()).mkpath(".");
     }
 
 	/* System tray icon*/

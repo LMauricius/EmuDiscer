@@ -15,10 +15,36 @@ Part of my MUtilize repo: https://github.com/LegendaryMauricius/MUtilize
 #include <sstream>
 #include <stdexcept>
 #include <functional>
-#include <filesystem>
+//#include <experimental/filesystem>
+#include <codecvt>
+#include <locale>
 
 namespace MiIniUtils
 {
+    template <class _StringT>
+    class Utf8Path
+    {
+    public:
+        Utf8Path(_StringT path)
+        {
+            std::wstring wpath;
+            wpath.resize(path.size(), 'a');
+            for (size_t i = 0; i< path.size(); i++)
+            {
+                wpath[i] = path[i];
+            }
+            std::wstring_convert<std::codecvt_utf8<wchar_t>> myconv;
+            utf8path = myconv.to_bytes(wpath);
+        }
+
+        std::string utf8path;
+
+        operator std::string() const
+        {
+            return utf8path;
+        }
+    };
+
     template <class _IStreamT, class _IFStreamT, class _StringT, class _PathT>
     class readFunc
     {
@@ -71,7 +97,7 @@ template<
     class _SStreamT = std::basic_stringstream<typename _StringT::value_type>,
     class _IStreamT = std::basic_istream<typename _StringT::value_type>,
     class _OStreamT = std::basic_ostream<typename _StringT::value_type>,
-    class _PathT = std::filesystem::path,
+    class _PathT = MiIniUtils::Utf8Path<_StringT>,//std::experimental::filesystem::path,
     class _ReadFunctorT = MiIniUtils::readFunc<_IStreamT, std::basic_ifstream<typename _StringT::value_type>, _StringT, _PathT>,
     class _WriteFunctorT = MiIniUtils::writeFunc<_OStreamT, std::basic_ofstream<typename _StringT::value_type>, _StringT, _PathT>
 >

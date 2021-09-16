@@ -424,7 +424,7 @@ void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring&
 
 void startProgram(const QString& path, const QString& options, const QString& workdir, const std::map<QString, QString>& envVars)
 {
-    QStringList firstOptions = QProcess::splitCommand(path);
+    /*QStringList firstOptions = QProcess::splitCommand(path);
     QStringList secondOptions = QProcess::splitCommand(options);
     QString prog = firstOptions.first();
     QStringList optionsList = QStringList(++firstOptions.begin(), firstOptions.end());
@@ -442,7 +442,7 @@ void startProgram(const QString& path, const QString& options, const QString& wo
     {
         p.setWorkingDirectory(workdir);
     }
-    p.setProcessEnvironment(env);
+    p.setProcessEnvironment(env);*/
 
-    p.startDetached();
+    QProcess::startDetached(path+" "+options);
 }
