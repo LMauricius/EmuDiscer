@@ -69,10 +69,10 @@ EmuDiscer::EmuDiscer(QSharedMemory* sharedMem, QWidget *parent)
 
 	/*UI Setup*/
 	connect(ui.okButton, SIGNAL(clicked()), this, SLOT(close()));
-	connect(ui.quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
-	//ui.emulatorsTabWidget->currentWidget()->setLayout(ui.emulatorSettingsLayout);
+    connect(ui.quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
     on_emulatorsTabWidget_currentChanged(ui.emulatorsTabWidget->currentIndex());
     connect(qApp, SIGNAL(saveStateRequest(QSessionManager&)), this, SLOT(on_saveStateRequest(QSessionManager&)));
+    mLineeditDefaultPalette = ui.pathEdit->palette();
 
     /*Macro list*/
     mMacrosMenu = new QMenu(this);
@@ -84,26 +84,8 @@ EmuDiscer::EmuDiscer(QSharedMemory* sharedMem, QWidget *parent)
         }
     ) {
         QAction *action = new QAction(macro, this);
-        //connect(action, SIGNAL(triggered()), this, SLOT(macroSelected()));
         mMacrosMenu->addAction(action);
     }
-    //connect(ui.macrosButton, SIGNAL(triggered()), mMacrosMenu, SLOT(show()));
-
-    // THIS IS NOT REALLY THE SAFEST WAY TO DETECT ALL NEW MOUNT POINTS
-    /*Setup file watcher if needed*/
-    /*auto driveDirs = getRemovableDriveDirectories();
-    if (driveDirs.size() > 0)
-    {
-        mFileWatcher->addPaths(driveDirs);
-        //connect(mFileWatcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(on_mediaDirChanged(const QString &)));
-        for (const QString &path : driveDirs)
-        {
-            QDir dir(path);
-            for (const QString &str : dir.entryList(QDir::Dirs|QDir::NoDotAndDotDot)) {
-                mMediaDirectories.push_back(path + "/" + str);
-            }
-        }
-    }*/
 
 #if defined __unix__
     // unix' way of reacting to drive change
@@ -135,10 +117,7 @@ EmuDiscer::EmuDiscer(QSharedMemory* sharedMem, QWidget *parent)
 	ui.notificationsCheckbox->setCheckState(
 		mConfig.get<bool>(L"System", L"ShowNotifications", true) ? Qt::CheckState::Checked : Qt::CheckState::Unchecked
     );
-    checkIfPathOk(ui.pathEdit);
-
-    // show to receive native events
-    //qApp->installNativeEventFilter(this);
+    checkIfPathOk(ui.pathEdit, mLineeditDefaultPalette);
 
     // show & hide to receive events
     show();
@@ -147,7 +126,6 @@ EmuDiscer::EmuDiscer(QSharedMemory* sharedMem, QWidget *parent)
 
 EmuDiscer::~EmuDiscer()
 {
-    //qApp->removeNativeEventFilter(this);
 }
 
 void EmuDiscer::closeEvent(QCloseEvent *event)
@@ -185,19 +163,6 @@ bool EmuDiscer::nativeEvent(const QByteArray & eventType, void * message, long *
                     char headerBuffer[128];
                     size_t charsToRead = 128;
                     charsToRead = getDriveFileHeader(QString(driveLetter), headerBuffer, charsToRead);
-
-                    // make an iso from the drive file (was an experiment - not working)
-                    /*std::string linkFilename = mTempDir.path().toStdString() + "driveIsoFile" + driveLetter + ".iso";
-                    std::error_code ec;
-                    std::filesystem::create_symlink(
-                        driveFilename,
-                        linkFilename,
-                        ec
-                    );
-                    if (ec.value())
-                    {
-                        qCritical() << "Couldn't link file: " << QString::fromStdString(ec.message()) << "\n";
-                    }*/
 
                     // launch Emu
                     if (
@@ -341,11 +306,10 @@ bool EmuDiscer::insertedMediaRaw(QString drive, const char *header, size_t heade
 void EmuDiscer::on_trayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
 	switch (reason)
-	{
-	/*case QSystemTrayIcon::Trigger:
-		mSysTrayMenu->popup(QCursor::pos());
-		break;*/
+    {
     case QSystemTrayIcon::Trigger:
+        /*mSysTrayMenu->popup(QCursor::pos());
+        break;*/
 	case QSystemTrayIcon::DoubleClick:
 		show();
 		activateWindow();
@@ -376,12 +340,6 @@ void EmuDiscer::on_notificationClicked()
 void EmuDiscer::on_mediaDirChanged(const QString &path)
 {
     QStringList newDirs;
-    /*QDirIterator it(path, QDirIterator::);
-
-    while (it.hasNext())
-    {
-        newDirs.push_back(it.next());
-    }*/
     QDir dir(path);
 
     for (const QString &str : dir.entryList(QDir::Dirs|QDir::NoDotAndDotDot))
@@ -403,7 +361,6 @@ void EmuDiscer::on_mediaDirChanged(const QString &path)
 
 void EmuDiscer::on_partitionChanged(QString drive)
 {
-    //"/dev/sr0";
     char headerBuffer[128];
     size_t charsToRead = 128;
 
@@ -424,7 +381,6 @@ void EmuDiscer::on_timer()
     {
         show();
         activateWindow();
-        //setFocus();
         ((SharedMemData*)mSharedMem->data())->raiseWindow = false;
     }
     mSharedMem->unlock();
@@ -441,23 +397,6 @@ void EmuDiscer::on_notificationsCheckbox_stateChanged(int state)
 {
 	mConfig.set(L"System", L"ShowNotifications", state == Qt::CheckState::Checked);
 }
-
-/*void EmuDiscer::on_emulatorList_currentTextChanged(const QString& currentText)
-{
-	if (ui.emulatorList->selectedItems().size())
-	{
-		mSelectedEmulator = currentText.toStdWString();
-		//ui.emulatorGroupbox->setEnabled(true);
-		ui.pathEdit->setText(QString::fromStdWString(mConfig.getStr(mSelectedEmulator, L"Path")));
-		ui.optionsEdit->setText(QString::fromStdWString(mConfig.getStr(mSelectedEmulator, L"Options")));
-	}
-	else
-	{
-		//ui.emulatorGroupbox->setEnabled(false);
-		ui.pathEdit->setText("");
-		ui.optionsEdit->setText("");
-	}
-}*/
 
 void EmuDiscer::on_emulatorsTabWidget_currentChanged(int index)
 {
@@ -499,10 +438,6 @@ void EmuDiscer::emulatorChanged()
 
                 c->setChecked(spacedStr.contains(textOptionPair.second));
                 connect(c, SIGNAL(stateChanged(int)), this, SLOT(optionCheckbox_triggered(int)));
-                /*if (ui.optionsEdit->text().size() == 0)
-                {
-                    c->setChecked(!textOptionPair.first.contains("not recommended"));
-                }*/
 
                 ui.launchOptionCheckboxesLayout->addWidget(c);
             }
@@ -531,7 +466,7 @@ void EmuDiscer::on_pathEdit_textChanged()
 	{
 		mConfig.setStr(mSelectedEmulator, L"Path", ui.pathEdit->text().toStdWString());
 		mConfig.sync();
-		checkIfPathOk(ui.pathEdit);
+        checkIfPathOk(ui.pathEdit, mLineeditDefaultPalette);
 	}
     emulatorChanged();
 }
@@ -646,13 +581,13 @@ void EmuDiscer::optionCheckbox_triggered(int state)
 
 
 
-bool checkIfPathOk(QLineEdit* lne)
+bool checkIfPathOk(QLineEdit* lne, const QPalette& defaultPalette)
 {
     QString txt = lne->text();
     QString programFile = lne->text();
 
     bool ok = fileExists(programFile);
-	QPalette palette = lne->style()->standardPalette();
+    QPalette palette = defaultPalette;
 
     if (!ok /*&& lne->text() != ""*/)// error color
 	{

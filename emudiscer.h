@@ -37,6 +37,7 @@ private:
     QTemporaryDir mTempDir;
     QSharedMemory* mSharedMem;
     QString mLastEmulatorType;
+    QPalette mLineeditDefaultPalette;
 
 	std::wstring mSelectedEmulator;
 
@@ -83,6 +84,6 @@ private slots:
     void optionCheckbox_triggered(int state);
 };
 
-bool checkIfPathOk(QLineEdit* lne);
+bool checkIfPathOk(QLineEdit* lne, const QPalette& defaultPalette);
 
 #endif // EMUDISCER_H
