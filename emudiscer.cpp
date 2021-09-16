@@ -240,7 +240,7 @@ bool EmuDiscer::tryLaunchEmu(QString emulatorType, QString mediaType, const std:
                 replaceAll(options, p.first, p.second);
             }
 
-            startProgram(path, options);
+            startProgram(QString::fromStdWString(path), QString::fromStdWString(options), QString::fromStdWString(L""), {});
         }
         else if (mConfig.get<bool>(L"System", L"ShowNotifications"))
         {

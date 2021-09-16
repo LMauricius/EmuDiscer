@@ -72,6 +72,7 @@ struct AppDef
 };
 
 QString getExeFileFilter();
+QString getProgramPath();
 QString getDesktopFileName();
 QString getHomeDirectory();
 QString getConfigDirectory();
@@ -87,4 +88,4 @@ bool directoryExists(const QString& name);
 void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring& to);
 bool isAutoRun();
 void setAutoRun(bool autorun);
-void startProgram(const std::wstring& path, const std::wstring& options);
+void startProgram(const QString& path, const QString& options, const QString& workdir, const std::map<QString, QString>& envVars);

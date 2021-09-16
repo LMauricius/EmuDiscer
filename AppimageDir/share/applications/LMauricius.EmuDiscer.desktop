@@ -1,9 +1,0 @@
-[Desktop Entry]
-Categories = Game;
-Comment = A program for running emulators when a disc is inserted.
-Exec = EmuDiscer --open-settings
-Icon = EmuDiscer
-Name = EmuDiscer
-Terminal = false
-Type = Application
-

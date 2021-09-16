@@ -11,6 +11,7 @@
 #include <QDebug>
 
 #include <fstream>
+#include <map>
 
 #ifdef _WIN32
     #include "windows.h"
@@ -26,6 +27,20 @@ QString getExeFileFilter()
     return "Executable(*.exe;*.bat);;All Files(*.*)";
 #elif defined __unix__
     return "All Files(*.*);;Shell script(*.sh)";
+#endif
+}
+
+QString getProgramPath()
+{
+#ifdef _WIN32
+    return QCoreApplication::applicationFilePath();
+#elif defined __unix__
+    auto appimagePath = qgetenv("APPIMAGE");
+    if (appimagePath.size())
+    {
+        return appimagePath;
+    }
+    return QCoreApplication::applicationFilePath();
 #endif
 }
 
@@ -276,7 +291,7 @@ size_t getDriveFileHeader(QString drive, char *headerBuffer, size_t charsToRead)
 
 bool isAutoRun()
 {
-    QString progPath = QCoreApplication::applicationFilePath();
+    QString progPath = getProgramPath();
 
 #ifdef _WIN32
     QSettings settings("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
@@ -300,7 +315,7 @@ bool isAutoRun()
 
 void setAutoRun(bool autorun)
 {
-    QString progPath = QCoreApplication::applicationFilePath();
+    QString progPath = getProgramPath();
 
 #ifdef _WIN32
 	QSettings settings("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
@@ -394,7 +409,7 @@ void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring&
 	}
 }
 
-void startProgram(const std::wstring& path, const std::wstring& options)
+void startProgram(const QString& path, const QString& options, const QString& workdir, const std::map<QString, QString>& envVars)
 {
 /*#ifdef WIN32
     std::wstring dir = path.substr(0, path.find_last_of(L"\\/"));
@@ -416,8 +431,27 @@ void startProgram(const std::wstring& path, const std::wstring& options)
         QString::fromStdWString(path) + QString::fromStdWString(options)
     );
 #endif*/
+    QStringList firstOptions = QProcess::splitCommand(path);
+    QStringList secondOptions = QProcess::splitCommand(options);
+    QString prog = firstOptions.first();
+    QStringList optionsList = QStringList(++firstOptions.begin(), firstOptions.end());
+    optionsList.append(secondOptions);
+
     QProcess p(nullptr);
-    p.startDetached(
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    for (const auto& varValPair : envVars)
+    {
+        env.insert(varValPair.first, varValPair.second);
+    }
+    p.setProgram(prog);
+    p.setArguments(optionsList);
+    if (workdir.size())
+    {
+        p.setWorkingDirectory(workdir);
+    }
+    p.setProcessEnvironment(env);
+    /*p.startDetached(
         QString::fromStdWString(path) + " " + QString::fromStdWString(options)
-    );
+    );*/
+    p.startDetached();
 }
