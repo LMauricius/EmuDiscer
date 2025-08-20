@@ -1,3 +1,6 @@
+build
+.vscode
+
 # C++ objects and libs
 *.slo
 *.lo

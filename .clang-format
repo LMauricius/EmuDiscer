@@ -1,0 +1,17 @@
+BasedOnStyle: Microsoft
+ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortBlocksOnASingleLine: Empty
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterStruct: true
+  AfterClass: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterControlStatement: Never
+  BeforeElse: false
+  AfterCaseLabel: false
+  AfterEnum: false
+  AfterExternBlock: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false

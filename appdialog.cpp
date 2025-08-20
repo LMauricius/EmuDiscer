@@ -1,31 +1,28 @@
 #include "appdialog.h"
 #include "ui_appdialog.h"
 
-#include <QPushButton>
-#include <QIcon>
-#include <QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <QIcon>
+#include <QPushButton>
+#include <QtConcurrent>
 
 namespace
 {
-    struct IconLoaderResult
-    {
-        QTreeWidgetItem *item;
-        QIcon icon;
-    };
-}
+struct IconLoaderResult
+{
+    QTreeWidgetItem *item;
+    QIcon icon;
+};
+} // namespace
 
-AppDialog::AppDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::AppDialog)
+AppDialog::AppDialog(QWidget *parent) : QDialog(parent), ui(new Ui::AppDialog)
 {
     ui->setupUi(this);
 
     AppDef root = getApps();
 
-    for (auto &nameAppPair : root.subApps)
-    {
+    for (auto &nameAppPair : root.subApps) {
         addApp(nameAppPair.first, nameAppPair.second, nullptr);
     }
     ui->appTree->hideColumn(1);
@@ -48,24 +45,20 @@ QString AppDialog::appPath() const
         return "";
 }
 
-void AppDialog::addApp(const QString &name, const AppDef& app, QTreeWidgetItem *parent)
+void AppDialog::addApp(const QString &name, const AppDef &app, QTreeWidgetItem *parent)
 {
-    QTreeWidgetItem *item = new QTreeWidgetItem((QTreeWidget*)nullptr, {name, app.path});
+    QTreeWidgetItem *item = new QTreeWidgetItem((QTreeWidget *)nullptr, {name, app.path});
 
-    if (parent)
-    {
+    if (parent) {
         parent->addChild(item);
-    }
-    else
-    {
+    } else {
         ui->appTree->addTopLevelItem(item);
     }
 
     // Load icon concurrently
-    if (app.iconLoader)
-    {
+    if (app.iconLoader) {
         std::function<QIcon()> iconLoader = app.iconLoader;
-        auto future = QtConcurrent::run([item, iconLoader](){
+        auto future = QtConcurrent::run([item, iconLoader]() {
             IconLoaderResult res;
             res.item = item;
             res.icon = iconLoader();
@@ -78,15 +71,14 @@ void AppDialog::addApp(const QString &name, const AppDef& app, QTreeWidgetItem *
     }
 
     // add children
-    for (auto& nameAppPair : app.subApps)
-    {
+    for (auto &nameAppPair : app.subApps) {
         addApp(nameAppPair.first, nameAppPair.second, item);
     }
 }
 
 void AppDialog::on_iconLoadedByFuture()
 {
-    auto *watcher = (QFutureWatcher<IconLoaderResult>*)sender();
+    auto *watcher = (QFutureWatcher<IconLoaderResult> *)sender();
     IconLoaderResult res = watcher->result();
     res.item->setIcon(0, res.icon);
 }
@@ -95,31 +87,27 @@ void AppDialog::on_filterEdit_textChanged()
 {
     QString filter = ui->filterEdit->text();
 
-    if (filter.size() > 0)
-    {
-        for (QTreeWidgetItem *item : ui->appTree->findItems("", Qt::MatchContains | Qt::MatchRecursive, 0))
-        {
+    if (filter.size() > 0) {
+        for (QTreeWidgetItem *item :
+             ui->appTree->findItems("", Qt::MatchContains | Qt::MatchRecursive, 0)) {
             item->setHidden(true);
         }
 
-        for (QTreeWidgetItem *item : ui->appTree->findItems(filter, Qt::MatchContains | Qt::MatchRecursive, 0))
-        {
-            if (item->text(1).length())// does it have exec?
+        for (QTreeWidgetItem *item :
+             ui->appTree->findItems(filter, Qt::MatchContains | Qt::MatchRecursive, 0)) {
+            if (item->text(1).length()) // does it have exec?
             {
                 item->setHidden(false);
 
                 QTreeWidgetItem *parent = item;
-                while ((parent = parent->parent()))
-                {
+                while ((parent = parent->parent())) {
                     parent->setHidden(false);
                 }
             }
         }
-    }
-    else
-    {
-        for (QTreeWidgetItem *item : ui->appTree->findItems("", Qt::MatchContains | Qt::MatchRecursive, 0))
-        {
+    } else {
+        for (QTreeWidgetItem *item :
+             ui->appTree->findItems("", Qt::MatchContains | Qt::MatchRecursive, 0)) {
             item->setHidden(false);
         }
     }
@@ -127,28 +115,21 @@ void AppDialog::on_filterEdit_textChanged()
     // expand items if not many
     const int smallNum = 3;
     int numVisibles = 0;
-    for (int i=0; i < ui->appTree->topLevelItemCount(); i++)
-    {
+    for (int i = 0; i < ui->appTree->topLevelItemCount(); i++) {
         QTreeWidgetItem *item = ui->appTree->topLevelItem(i);
-        if (!item->isHidden())
-        {
+        if (!item->isHidden()) {
             numVisibles++;
         }
     }
 
-    if (numVisibles <= smallNum)
-    {
+    if (numVisibles <= smallNum) {
         ui->appTree->expandAll();
-    }
-    else
-    {
+    } else {
         ui->appTree->collapseAll();
     }
-    if (ui->appTree->currentItem())
-    {
+    if (ui->appTree->currentItem()) {
         QTreeWidgetItem *parent = ui->appTree->currentItem();
-        while ((parent = parent->parent()))
-        {
+        while ((parent = parent->parent())) {
             ui->appTree->expandItem(ui->appTree->currentItem());
         }
     }
@@ -161,8 +142,7 @@ void AppDialog::on_appTree_currentItemChanged(QTreeWidgetItem *current, QTreeWid
 
 void AppDialog::on_appTree_itemDoubleClicked(QTreeWidgetItem *item, int column)
 {
-    if (ui->appTree->currentItem()->text(1).size())
-    {
+    if (ui->appTree->currentItem()->text(1).size()) {
         ui->appTree->setCurrentItem(item);
         mAppPath = ui->appTree->currentItem()->text(1);
         close();

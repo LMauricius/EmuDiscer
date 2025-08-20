@@ -1,8 +1,8 @@
 #ifndef UDISKS2WATCHER_H
 #define UDISKS2WATCHER_H
 
-#include <QObject>
 #include <QMap>
+#include <QObject>
 #include <QVariant>
 #include <map>
 #include <memory>
@@ -12,15 +12,15 @@ class UDisks2PropertyChangeWatcher;
 class UDisks2Watcher : public QObject
 {
     Q_OBJECT
-public:
+  public:
     explicit UDisks2Watcher(QObject *parent = nullptr);
     ~UDisks2Watcher();
 
-signals:
+  signals:
     void partitionChanged(QString driveName);
     void driveMounted(QString driveName, QString mountDir);
 
-protected:
+  protected:
 #ifdef __unix__
     QList<QString> mBlockdevObjects;
     std::map<QString, std::unique_ptr<UDisks2PropertyChangeWatcher>> mPathWatcherMap;
@@ -29,7 +29,7 @@ protected:
     void updateInterfaceList();
 #endif
 
-protected slots:
+  protected slots:
 #ifdef __unix__
     void on_blockDevicePropertiesChanged(QString objPath, QVariantMap changedProps);
     void on_interfaceAdded(QString objPath);
@@ -37,22 +37,21 @@ protected slots:
 #endif
 };
 
-
 #ifdef __unix__
 class UDisks2PropertyChangeWatcher : public QObject
 {
     Q_OBJECT
-public:
+  public:
     explicit UDisks2PropertyChangeWatcher(QString objPath, QObject *parent = nullptr);
     ~UDisks2PropertyChangeWatcher();
 
-signals:
+  signals:
     void objectPropertiesChanged(QString devName, QVariantMap changedProps);
 
-protected:
+  protected:
     QString mObjPath;
 
-protected slots:
+  protected slots:
     void on_propertiesChanged(QString interface, QVariantMap changedProps);
 };
 #endif
