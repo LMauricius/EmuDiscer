@@ -444,5 +444,9 @@ void startProgram(const QString& path, const QString& options, const QString& wo
     }
     p.setProcessEnvironment(env);*/
 
-    QProcess::startDetached(path+" "+options);
+    QStringList splitComm = QProcess::splitCommand(path + " " + options);
+    qDebug() << "Starting command `" << splitComm << "`\n";
+    if (splitComm.size() > 0) {
+      QProcess::startDetached(splitComm.first(), splitComm.sliced(1));
+    }
 }
