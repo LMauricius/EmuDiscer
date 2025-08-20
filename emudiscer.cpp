@@ -4,17 +4,17 @@
 #include "EmulatorBuiltInOptions.h"
 #include "appdialog.h"
 
+#include <QCloseEvent>
+#include <QDebug>
+#include <QDirIterator>
+#include <QEvent>
 #include <QFileDialog>
 #include <QSettings>
-#include <QEvent>
 #include <QStyle>
-#include <QTabWidget>
 #include <QTabBar>
-#include <QEvent>
-#include <QCloseEvent>
-#include <QDirIterator>
-#include <QDebug>
+#include <QTabWidget>
 #include <QTextStream>
+#include <qlogging.h>
 
 #ifdef WIN32
 #include "windows.h"
@@ -134,8 +134,8 @@ void EmuDiscer::closeEvent(QCloseEvent *event)
 	event->ignore();
 }
 
-bool EmuDiscer::nativeEvent(const QByteArray & eventType, void * message, long *result)
-{
+bool EmuDiscer::nativeEvent(const QByteArray &eventType, void *message,
+                            qintptr *result) {
 #ifdef WIN32
 	MSG* msg = (MSG*)message;
 
@@ -227,8 +227,11 @@ bool EmuDiscer::insertedMediaDir(QString directory, QString drive)
 	QString emulatorType;
 	std::map<std::wstring, std::wstring> vars;
 
-	vars[L"(DRIVE)"] = drive.toStdWString();
-	vars[L"(DIRECTORY)"] = directory.toStdWString();
+        qDebug() << "Detected insert of " << drive << " to " << directory
+                 << "\n";
+
+        vars[L"(DRIVE)"] = drive.toStdWString();
+        vars[L"(DIRECTORY)"] = directory.toStdWString();
 	vars[L"(BOOT_FILE)"] = L"";
 
 	// ps1 and ps2

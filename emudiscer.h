@@ -43,8 +43,9 @@ private:
     QStringList mMediaDirectories;
     QStringList mPartitions;
 
-	void closeEvent(QCloseEvent *event);
-    bool nativeEvent(const QByteArray & eventType, void * message, long *result);
+    void closeEvent(QCloseEvent *event) override;
+    bool nativeEvent(const QByteArray &eventType, void *message,
+                     qintptr *result) override;
 
     /**
      * @param directory The directory of the disc files
