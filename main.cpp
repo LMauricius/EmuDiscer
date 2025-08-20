@@ -4,11 +4,13 @@
 #elif defined __unix__
 #endif*/
 
-#include "emudiscer.h"
 #include "Utilities.h"
-#include <QtWidgets/QApplication>
+#include "emudiscer.h"
 #include <QCommandLineParser>
 #include <QDebug>
+#include <QtWidgets/QApplication>
+#include <qlogging.h>
+
 
 int main(int argc, char *argv[])
 {
@@ -38,34 +40,39 @@ int main(int argc, char *argv[])
     QSharedMemory sharedMemory;
     sharedMemory.setKey (QString("EmuDiscerSharedData_")+getUsername());
     qDebug() << sharedMemory.nativeKey() << "\n";
-    if (!sharedMemory.create(sizeof(SharedMemData)) && !parser.isSet(multiInstanceOption))
-    {
-
-        qDebug() << "Already running" << "\n";
-        sharedMemory.attach();
-
+    if (!sharedMemory.create(sizeof(SharedMemData)) &&
+        !parser.isSet(multiInstanceOption)) {
+      qDebug() << "Already running" << "\n";
+      if (sharedMemory.attach()) {
         sharedMemory.lock();
-        ((SharedMemData*)sharedMemory.data())->raiseWindow = true;
+        ((SharedMemData *)sharedMemory.data())->raiseWindow = true;
         sharedMemory.unlock();
 
         sharedMemory.detach();
         return 0;
-
+      } else {
+        qDebug()
+            << "Couldn't use shared memory to notify the existing instance!"
+            << "\n";
+      }
     }
 
-	// options window
+    // options window
     EmuDiscer w(&sharedMemory);
 
 	if (parser.isSet(settingsOption))
 		w.show();
 
     // attach to shared data
-    sharedMemory.attach();
+        if (sharedMemory.attach()) {
 
-    sharedMemory.lock();
-    ((SharedMemData*)sharedMemory.data())->raiseWindow = false;
-    sharedMemory.unlock();
+          sharedMemory.lock();
+          ((SharedMemData *)sharedMemory.data())->raiseWindow = false;
+          sharedMemory.unlock();
+        } else {
+          qDebug() << "Couldn't setup shared memory\n";
+        }
 
-	// finally, execute qt app
-	return app.exec();
+        // finally, execute qt app
+        return app.exec();
 }

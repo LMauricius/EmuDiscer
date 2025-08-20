@@ -1,5 +1,5 @@
 #include "UDisks2Watcher.h"
-
+#include <stdexcept>
 
 #ifdef __unix__
 #include <QtDBus>
@@ -27,19 +27,16 @@ namespace {
 
         QDBusArgument argFirst;
 
-        if (aayContainingVariant.canConvert<QDBusArgument>())
-        {
-            argFirst = aayContainingVariant.value<QDBusArgument>();
-        }
-        else if (aayContainingVariant.canConvert<QDBusVariant>())
-        {
-            QDBusVariant dbvFirst = aayContainingVariant.value<QDBusVariant>();
-            QVariant vFirst = dbvFirst.variant();
-            QDBusArgument argFirst = vFirst.value<QDBusArgument>();
-        }
-        else
-        {
-            throw "ERRORRR";
+        if (aayContainingVariant.canConvert<QDBusArgument>()) {
+          argFirst = aayContainingVariant.value<QDBusArgument>();
+        } else if (aayContainingVariant.canConvert<QDBusVariant>()) {
+          QDBusVariant dbvFirst = aayContainingVariant.value<QDBusVariant>();
+          QVariant vFirst = dbvFirst.variant();
+          argFirst = vFirst.value<QDBusArgument>();
+        } else {
+          throw std::runtime_error(
+              std::string("Can't retrieve QDBusArgument: variant is ") +
+              aayContainingVariant.typeName());
         }
 
         argFirst.beginArray();
@@ -47,6 +44,8 @@ namespace {
         while ( !argFirst.atEnd() ) {
             QByteArray content;
             argFirst >> content;
+            if (content.endsWith('\0'))
+              content.removeLast();
             ret.append(QString::fromUtf8(content));
         }
 
